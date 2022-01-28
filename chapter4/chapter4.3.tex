@@ -1,0 +1,205 @@
+\section{Testing the Simulator}
+We will write some simple tests for our simulator using the program from page \pageref{program:simpleTest}, for which the machine code is:
+\begin{stdout}
+54 55 52 49 4E 47 09 00 31 00 30 00 01 01 00 30 00 31 00 00 00 00 00 00 01 02 02 31 00 00 01 02 01 30 00 30 00 01 01 01 31 00 31 00 01 01 01 41 00 41 00 01 01 01 00 41 00 00 00 00 41 00 41 00 00 00
+\end{stdout}
+As a reminder, this program takes a multi-cell input in binary, and outputs a string of \cpp{"A"}s which is that many characters long.
+
+We will put these tests in \path{src/tests/simulator-tests.cc}. The first test will be with an empty input. We would expect the simulator to finish in state \statename{2} (\statename{done}) and the tape should be empty.
+
+\begin{file}{src/tests/simulator-tests.cc}{c++}{1}
+#include <sstream>
+#include "tests.hh"
+#include "../decoder.hh"
+#include "../simulator.hh"
+
+static bool emptyStringOfAsTest(void)
+{
+    std::stringstream is(std::string(
+        "\x54\x55\x52\x49\x4E\x47\x09\x00\x31\x00\x30\x00\x01\x01\x00\x30"
+        "\x00\x31\x00\x00\x00\x00\x00\x00\x01\x02\x02\x31\x00\x00\x01\x02"
+        "\x01\x30\x00\x30\x00\x01\x01\x01\x31\x00\x31\x00\x01\x01\x01\x41"
+        "\x00\x41\x00\x01\x01\x01\x00\x41\x00\x00\x00\x00\x41\x00\x41\x00"
+        "\x00\x00",
+        66));
+    Decoder decoder;
+    auto program = decoder.decode(is);
+
+    std::vector<std::string> initialSymbols;
+    Tape tape(initialSymbols);
+
+    Simulator sim(std::move(program), tape);
+
+    while (sim.step())
+    {
+    }
+
+    std::vector<std::string> expected({""});
+
+    return sim.getState() == 2 && tape.getAllSymbols() == expected;
+}
+\end{file}
+
+As you can see, we start by loading the machine code into a string stream, and then decode it using the decoder to get a pointer to the program. Then, we create an empty tape (as the input is empty for this test), and then use these to construct the simulator.
+
+We then run the \cpp{sim.step} method until it returns \cpp{false}, which indicates that the program has finished running. Then we check that the ending state is indeed \statename{2} and that the tape ends up with a single empty cell.
+
+The next test will be very similar except it will test what happens when the input is a single cell containing the symbol \cpp{"0"}. The expected output is the same.
+
+\begin{file}{src/tests/simulator-tests.cc}{c++}{32}
+static bool stringOf0AsTest(void)
+{
+    std::stringstream is(std::string(
+        "\x54\x55\x52\x49\x4E\x47\x09\x00\x31\x00\x30\x00\x01\x01\x00\x30"
+        "\x00\x31\x00\x00\x00\x00\x00\x00\x01\x02\x02\x31\x00\x00\x01\x02"
+        "\x01\x30\x00\x30\x00\x01\x01\x01\x31\x00\x31\x00\x01\x01\x01\x41"
+        "\x00\x41\x00\x01\x01\x01\x00\x41\x00\x00\x00\x00\x41\x00\x41\x00"
+        "\x00\x00",
+        66));
+    Decoder decoder;
+    auto program = decoder.decode(is);
+
+    std::vector<std::string> initialSymbols({"0"});
+    Tape tape(initialSymbols);
+
+    Simulator sim(std::move(program), tape);
+
+    while (sim.step())
+    {
+    }
+
+    std::vector<std::string> expected({""});
+
+    return sim.getState() == 2 && tape.getAllSymbols() == expected;
+}
+\end{file}
+
+Likewise, the next test will be for the input \cpp{"1"}. Here we expect the tape to end up with a single cell containing the symbol \cpp{"A"}.
+
+\begin{file}{src/tests/simulator-tests.cc}{c++}{58}
+static bool stringOf1ATest(void)
+{
+    std::stringstream is(std::string(
+        "\x54\x55\x52\x49\x4E\x47\x09\x00\x31\x00\x30\x00\x01\x01\x00\x30"
+        "\x00\x31\x00\x00\x00\x00\x00\x00\x01\x02\x02\x31\x00\x00\x01\x02"
+        "\x01\x30\x00\x30\x00\x01\x01\x01\x31\x00\x31\x00\x01\x01\x01\x41"
+        "\x00\x41\x00\x01\x01\x01\x00\x41\x00\x00\x00\x00\x41\x00\x41\x00"
+        "\x00\x00",
+        66));
+    Decoder decoder;
+    auto program = decoder.decode(is);
+
+    std::vector<std::string> initialSymbols({"1"});
+    Tape tape(initialSymbols);
+
+    Simulator sim(std::move(program), tape);
+
+    while (sim.step())
+    {
+    }
+
+    std::vector<std::string> expected({"A"});
+
+    return sim.getState() == 2 && tape.getAllSymbols() == expected;
+}
+\end{file}
+
+And finally, we will test the input 5, which this program expects in binary, with one cell per digit (\cpp{"1"}, \cpp{"0"}, \cpp{"1"}). The expected output is 5 cells, each containing the symbol \cpp{"A"}.
+
+\begin{file}{src/tests/simulator-tests.cc}{c++}{84}
+static bool stringOf5AsTest(void)
+{
+    std::stringstream is(std::string(
+        "\x54\x55\x52\x49\x4E\x47\x09\x00\x31\x00\x30\x00\x01\x01\x00\x30"
+        "\x00\x31\x00\x00\x00\x00\x00\x00\x01\x02\x02\x31\x00\x00\x01\x02"
+        "\x01\x30\x00\x30\x00\x01\x01\x01\x31\x00\x31\x00\x01\x01\x01\x41"
+        "\x00\x41\x00\x01\x01\x01\x00\x41\x00\x00\x00\x00\x41\x00\x41\x00"
+        "\x00\x00",
+        66));
+    Decoder decoder;
+    auto program = decoder.decode(is);
+
+    std::vector<std::string> initialSymbols({"1", "0", "1"});
+    Tape tape(initialSymbols);
+
+    Simulator sim(std::move(program), tape);
+
+    while (sim.step())
+    {
+    }
+
+    std::vector<std::string> expected({"A", "A", "A", "A", "A"});
+
+    return sim.getState() == 2 && tape.getAllSymbols() == expected;
+}
+\end{file}
+
+To tie these tests together, we will implement this component's \cpp{allTests} method.
+
+\begin{file}{src/tests/simulator-tests.cc}{c++}{110}
+void tests::simulator::allTests(tests::Record &record)
+{
+    RUN_TEST(emptyStringOfAsTest, record);
+    RUN_TEST(stringOf0AsTest, record);
+    RUN_TEST(stringOf1ATest, record);
+    RUN_TEST(stringOf5AsTest, record);
+
+    return;
+}
+\end{file}
+
+To make sure that these tests are run, we must add this component to the \cpp{FOR_ALL_COMPONENTS} macro in \path{src/tests/tests.hh}.
+
+\begin{file}{src/tests/tests.hh}{c++}{8}
+#define FOR_ALL_COMPONENTS \
+    X(encoder)             \
+    X(decoder)             \
+    X(vlq)                 \
+    X(simulator)
+\end{file}
+
+Finally, we must add our new source files and dependency targets to the \code{tests} target in the Makefile.
+
+\begin{file}{Makefile}{make}{4}
+tests: vlq encoder decoder tape simulator
+	$(CC) $(FLAGS) -o dist/tests dist/encoder.o \
+	                             dist/decoder.o \
+	                             dist/vlq.o \
+	                             dist/tape.o \
+	                             dist/simulator.o \
+	                             src/tests/vlq-tests.cc \
+	                             src/tests/encoder-tests.cc \
+	                             src/tests/decoder-tests.cc \
+	                             src/tests/simulator-tests.cc \
+	                             src/tests/tests.cc
+\end{file}
+
+Now, when we run our test suite, all of our tests should pass, indicating that our simulator is working as expected.
+\begin{stdout}
+Running encoder tests:
+  simpleTest: ✅
+PASSED: 1/1 ✅
+
+Running decoder tests:
+  simpleTest: ✅
+PASSED: 1/1 ✅
+
+Running vlq tests:
+  is0EncodedCorrectly: ✅
+  is50EncodedCorrectly: ✅
+  is123456789EncodedCorrectly: ✅
+  is0DecodedCorrectly: ✅
+  is50DecodedCorrectly: ✅
+  is123456789DecodedCorrectly: ✅
+  is123456789DecodedCorrectlyWithMoreBytes: ✅
+PASSED: 7/7 ✅
+
+Running simulator tests:
+  emptyStringOfAsTest: ✅
+  stringOf0AsTest: ✅
+  stringOf1ATest: ✅
+  stringOf5AsTest: ✅
+PASSED: 4/4 ✅
+
+OVERALL PASSED: 13/13 ✅
+\end{stdout}

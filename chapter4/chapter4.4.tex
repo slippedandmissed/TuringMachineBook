@@ -1,0 +1,124 @@
+\section{The TMVM CLI}
+
+In this section we will be creating a command-line interface to the simulator. The usage will be as follows:
+
+\begin{stdout}
+tmvm <program> [<symbol0> <symbol1> <symbol2> ...]
+\end{stdout}
+
+In other words, the first argument will be a path to a file containing the machine code of the program to run. The next arguments are optional and there can be arbitrarily many of them. They each represent a symbol to go on the tape, from left to right. As usual, the convention will be that the machine starts with the read/write head over the rightmost cell from the input.
+
+We will write this code in \path{src/tmvm.cc}. The first part of the \cpp{main} method will check whether too few arguments have been specified, and if so, print the usage message, and exit.
+
+\begin{file}{src/tmvm.cc}{c++}{1}
+#include <iostream>
+#include <fstream>
+#include "decoder.hh"
+#include "simulator.hh"
+
+int main(int argc, char **argv)
+{
+
+    if (argc < 2)
+    {
+        std::cout << "Usage: " << argv[0] << " <program> [<symbol0> <symbol1> <symbol2> ...]" << std::endl;
+        return 1;
+    }
+\end{file}
+
+Then, we will open the file specified by the first argument. If that file could not be found or was in some other way problematic, we will print out another error message to that effect, and exit.
+
+\begin{file}{src/tmvm.cc}{c++}{15}
+    std::ifstream is(argv[1]);
+
+    if (!is.is_open())
+    {
+        std::cout << "Could not find program \"" << argv[1] << "\"" << std::endl;
+        return 2;
+    }
+\end{file}
+
+Next, we will instantiate a decoder, and attempt to decode the program. If this fails (meaning that the \cpp{Decoder::decode} method returned a \cpp{nullptr}), then print out yet another error message, and exit. Since we now have a pointer to the decoded program, we can close the input file.
+
+\begin{file}{src/tmvm.cc}{c++}{23}
+    Decoder decoder;
+    auto program = decoder.decode(is);
+    if (!program)
+    {
+        std::cout << "Failed to decode program: \"" << argv[1] << "\"" << std::endl;
+        return 3;
+    }
+
+    is.close();
+\end{file}
+
+Next, we initialise a tape using the remaining arguments to the program, if any exist.
+
+\begin{file}{src/tmvm.cc}{c++}{33}
+    std::vector<std::string> initialSymbols;
+    initialSymbols.assign(argv + 2, argv + argc);
+    Tape tape(initialSymbols);
+\end{file}
+
+We can now construct a simulator using the program pointer and the tape. We will call its \cpp{step} method repeatedly until it returns \cpp{false} (which will indicate that the program has finished running).
+
+\begin{file}{src/tmvm.cc}{c++}{37}
+    Simulator sim(std::move(program), tape);
+
+    while (sim.step())
+    {
+    }
+\end{file}
+
+Finally, we will output the simulator, and exit.
+
+\begin{file}{src/tmvm.cc}{c++}{43}
+    std::cout << sim << std::endl;
+
+    return 0;
+}
+\end{file}
+
+We can add this as a new target to the Makefile.
+
+\begin{file}{Makefile}{make}{16}
+tmvm: dist-dir
+	$(CC) $(CFLAGS) -o dist/tmvm dist/decoder.o \
+	                             dist/vlq.o \
+	                             dist/tape.o \
+	                             dist/simulator.o \
+	                             src/tmvm.cc
+\end{file}
+
+Furthermore, we will add a target called \code{all}, which will compile all of the components (excluding the tests).
+
+\begin{file}{Makefile}{make}{4}
+all: vlq encoder decoder tape simulator tmvm
+\end{file}
+
+To run the TMVM, we will need to have a file which contains the machine code for the program we want to execute. Again using the example from page \pageref{program:simpleTest}, that machine code would be the following bytes:
+
+\begin{stdout}
+54 55 52 49 4E 47 09 00 31 00 30 00 01 01 00 30 00 31 00 00 00 00 00 00 01 02 02 31 00 00 01 02 01 30 00 30 00 01 01 01 31 00 31 00 01 01 01 41 00 41 00 01 01 01 00 41 00 00 00 00 41 00 41 00 00 00
+\end{stdout}
+
+We could store these bytes in a file called \path{programs/string_of_As.tur}, with the \path{.tur} extension indicating that this file is a Turing machine program.
+
+To build the TMVM and run this program on it with input 20 (10100 in binary), we would run the following commands:
+
+\begin{stdout}
+make
+./dist/tmvm ./programs/string_of_As.tur 1 0 1 0 0
+\end{stdout}
+
+And we would see the output:
+
+\begin{stdout}
+State: 2
+«_____»____________________________________________________________
+«| A |» A | A | A | A | A | A | A | A | A | A | A | A | A | A | A |
+«‾‾↑‾‾»‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+_________________
+| A | A | A | A |
+‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}

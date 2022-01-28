@@ -1,0 +1,151 @@
+\section{Defining the Format}
+
+In the previous chapter we represented each of our transition rules in the form of $\Delta$ function notation. This, however, is rather slow and difficult for a Turing Machine simulator to parse. Instead we'll want to design some sort of efficient machine code structure which can encode our set of rules.
+
+There are of course many ways to do this, but the one we will use is the following:
+
+\begin{quote}
+    The first 6 bytes of the machine code will be 0x545552494E47, which is the ASCII representation of the string \cpp{"TURING"}. This will make it clear to any parser what type of file it is dealing with.
+    
+    Next will be the unsigned integer representing how many rules there are in the set.
+    
+    The next part of the machine code will be the unsigned integer representing the starting state of the first rule.
+    
+    Then, a C-style null-terminated string representing the symbol which must be seen in order for the first rule to apply.
+    
+    Then, another C-style string representing the symbol which will be put into the current cell when the first rule is applied.
+    
+    Next comes a single byte, the least significant bit of which represents the direction in which the read/write head moves after applying the first rule. Arbitrarily we can say that a value of 0 means left, and a value of 1 means right.
+    
+    Then, another unsigned integer representing the ending state of the first rule.
+    
+    The five segments above are repeated for each rule in the ruleset.
+    
+    After this, optionally, is some metadata which we will discuss in more detail later.\label{concept:metadata}
+\end{quote}
+
+The structure described above has some interesting properties. One of these is that we have switched to using integers to represent the state names, rather than strings. For example, we would have state \statename{0}, state \statename{1} etc., instead of state \statename{start}, state \statename{done} etc. The reason we do this is that it will allow the Turing machine simulator to more efficiently work out which rule (if any) applies at any given time.
+
+However, this presents us with a problem. Namely, how do we encode integers of arbitrary length? In most programming languages integers are stored as values of finite length (typically 4 or 8 bytes), however this would give us only a fixed number of states to work with. Instead we can use an encoding called \textit{variable length quantity} (VLQ) which was originally designed to encode arbitrarily large integers for MIDI files.
+
+Suppose we have some unsigned integer $x$ which we want to encode --- for example, 2862441. We will write this number in binary:
+
+\begin{quote}
+    1010111010110101101001
+\end{quote}
+
+Next we pad the left of this bit string with 0s until the number of bits is a multiple of 7.
+
+\begin{quote}
+    0000001010111010110101101001
+\end{quote}
+
+Now we split this bit string into chunks of length 7.
+
+\begin{quote}
+    0000001 0101110 1011010 1101001
+\end{quote}
+
+Next we prepend a 1 to each of the chunks, except the last one, to which we instead prepend a 0. Now, the most significant bit of each 8-bit chunk (or octet) represents whether or not the integer has more bytes to come.
+
+\begin{quote}
+    10000001 10101110 11011010 01101001
+\end{quote}
+
+Converting this to hex, it means that our number, 2862441, can be written as the bytes 0x81AEDA69.
+
+The fact that we are using integers instead of strings to represent our states also means that our program will be harder to write, interpret, and debug, as we would have to somehow remember which state corresponds to which concept. Strings give us a handy mnemonic device to remember what our states are for, and using them allows for mental models such as meta-states. To aid in creating the programs, in the next section we will write some C++ code which allows us to specify our program with string states, and they will be automatically converted into integer states when outputting machine code.
+
+Furthermore, to aid with debugging, this C++ tool can optionally record a mapping from state integers to state strings in the metadata of the machine code program. This will allow the Turing machine simulator to tell us the string associated with the current state at any given time. This will be covered in more detail later when we discuss the metadata.
+
+Another quirk of this machine code format we've specified is that a whole byte is used to represent the read/write head direction for each rule, when only the least significant bit actually encodes information. This is a redundancy of 7 bits per rule. For a large ruleset, this wasted space will add up very quickly. The reason we do this is so that every data element in the machine code is aligned to an 8-bit boundary, which will allow for much cleaner, faster parsing of the ruleset by the Turing machine simulator.
+
+Let's run through an example instruction to see how this encoding works in practice. Suppose we have the following program from page \pageref{program:binaryStringOfAs}:\label{program:simpleTest}
+\begin{stdout}
+Δ(start, 1) = (0, →, go_to_end)
+Δ(start, 0) = (1, ←, start)
+Δ(start, ) = (, →, done)
+Δ(done, 1) = (, →, done)
+Δ(go_to_end, 0) = (0, →, go_to_end)
+Δ(go_to_end, 1) = (1, →, go_to_end)
+Δ(go_to_end, A) = (A, →, go_to_end)
+Δ(go_to_end, ) = (A, ←, start)
+Δ(start, A) = (A, ←, start)
+\end{stdout}
+We can assume that states are assigned increasing integers in order of when they are first mentioned. That is to say, \statename{start} $\shortrightarrow$ \statename{0}, \statename{go_to_end} $\shortrightarrow$ \statename{1}, and \statename{done} $\shortrightarrow$ \statename{2}.
+
+We would expect to see the following machine code when viewed in hex:
+\begin{stdout}
+54 55 52 49 4E 47 09 00 31 00 30 00 01 01 00 30 00 31 00 00 00 00 00 00 01 02 02 31 00 00 01 02 01 30 00 30 00 01 01 01 31 00 31 00 01 01 01 41 00 41 00 01 01 01 00 41 00 00 00 00 41 00 41 00 00 00
+\end{stdout}
+To make sense of this, here it is again but formatted more helpfully, and with comments indicating what each section represents:
+\begin{stdout}
+54 55 52 49 4E 47       // ASCII string "TURING"
+
+09                      // VLQ encoding of the number 9 — the number of rules.
+
+                        // 1st rule
+00                      // VLQ encoding of 0 — the "start" state
+31 00                   // C-style string "1"
+30 00                   // C-style string "0"
+01                      // Move read/write head to the right
+01                      // VLQ encoding of 1 — the "go_to_end" state
+
+                        // 2nd rule 
+00                      // State 0 ("start")
+30 00                   // "0"
+31 00                   // "1"
+00                      // Left
+00                      // State 0 ("start")
+
+                        // 3rd rule
+00                      // State 0 ("start")
+00                      // Empty C-style string "" — the empty symbol
+00                      // Empty C-style string "" — the empty symbol
+01                      // Right
+02                      // State 2 ("done")
+
+                        // 4th rule
+02                      // State 2 ("done")
+31 00                   // "1"
+00                      // ""
+01                      // Right
+02                      // State 2 ("done")
+
+                        // 5th rule
+01                      // State 1 ("go_to_end")
+30 00                   // "0"
+30 00                   // "0"
+01                      // Right
+01                      // State 1 ("go_to_end")
+
+                        // 6th rule
+01                      // State 1 ("go_to_end")
+31 00                   // "1"
+31 00                   // "1"
+01                      // Right
+01                      // State 1 ("go_to_end")
+
+                        // 7th rule
+01                      // State 1 ("go_to_end")
+41 00                   // "A"
+41 00                   // "A"
+01                      // Right
+01                      // State 1 ("go_to_end")
+
+                        // 8th rule
+01                      // State 1 ("go_to_end")
+00                      // ""
+41 00                   // "A"
+00                      // Left
+00                      // State 0 ("start")
+
+                        // 9th rule
+00                      // State 0 ("start")
+41 00                   // "A"
+41 00                   // "A"
+00                      // Left
+00                      // State 0 ("start")
+\end{stdout}
+
+As you can imagine, writing this machine code manually would be a very time consuming and error-prone process. That is why in the next section we will write an encoder which will generate this for us.

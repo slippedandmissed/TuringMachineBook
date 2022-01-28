@@ -1,0 +1,71 @@
+\setmonofont{DejaVu Sans Mono}
+
+\makeatletter
+\renewcommand{\minted@inputpyg}{%
+  \expandafter\let\expandafter\minted@PYGstyle%
+    \csname PYG\minted@get@opt{style}{default}\endcsname
+  \VerbatimPygments{\PYG}{\minted@PYGstyle}%
+  \ifthenelse{\boolean{minted@isinline}}%
+   {\ifthenelse{\equal{\minted@get@opt{breaklines}{false}}{true}}%
+    {\let\FV@BeginVBox\relax
+     \let\FV@EndVBox\relax
+     \def\FV@BProcessLine##1{%
+       \FancyVerbFormatLine{%
+         \FV@BreakByTokenAnywhereHook
+         \FancyVerbFormatText{\FancyVerbBreakStart##1\FancyVerbBreakStop}}}%
+     \minted@inputpyg@inline}%
+    {\minted@inputpyg@inline}}%
+   {\minted@inputpyg@block}%
+}
+\makeatother
+
+\setmintedinline{breaklines, breakafter=(, breakaftersymbolpre=}
+\newcommand{\cpp}{\mintinline{c++}}
+\newcommand{\code}{\mintinline{text}}
+\newcommand{\statename}[1]{\textbf{\Verb|#1|}}
+\newcommand{\symb}[1]{\Verb|#1|}
+
+\newcommand{\structure}[1]{\vspace{10mm}\dirtree{#1}\vspace{10mm}}
+
+\definecolor{darkgreen}{RGB}{0, 128, 0}
+\definecolor{darkblue}{RGB}{0, 0, 128}
+
+\newcommand{\stdoutcolor}{\color{darkblue}}
+
+\newunicodechar{✅}{\emoji{check-mark-button}}
+\newunicodechar{❌}{\emoji{cross-mark}}
+\newunicodechar{‾}{${\overline{\phantom{\texttt{A}}}}$}
+\newunicodechar{«}{\color{red}}
+\newunicodechar{»}{\stdoutcolor}
+\newenvironment{file}[3]
+    {%
+        \VerbatimEnvironment
+        \begin{tabular}[H]{|p{\textwidth}|}
+        \hline
+        \cellcolor{blue!12}
+        \Verb|#1|
+        \\ \hline
+        \begin{minted}[breaklines,linenos,firstnumber=#3,escapeinside=@@]{#2}%
+    }
+    {%
+        \end{minted}
+        \\ \hline
+        \end{tabular}
+    }
+
+
+\newenvironment{stdout}
+    {%
+        \VerbatimEnvironment
+        \stdoutcolor
+        \begin{minted}[xleftmargin=1em,breaklines,escapeinside=@@]{text}%
+    }
+    {%
+        \end{minted}
+        \color{defaultcolor}
+    }
+    
+\RedeclareSectionCommand[
+  afterindent=false,
+  beforeskip=\baselineskip,
+  afterskip=.5\baselineskip]{section}

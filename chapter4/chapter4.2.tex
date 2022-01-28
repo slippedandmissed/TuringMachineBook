@@ -1,0 +1,301 @@
+\section{Outputting the Simulator}
+
+Eventually, we'll want some way to output the state of the machine and contents of the tape. That way, we'll be able to know that our program did what it was supposed to do.
+
+First, we'll focus on outputting the contents of the tape. For example, if our tape looked like this:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{done}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & $\uparrow$ & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Then we might want some sort of output to stdout like this:
+
+\begin{stdout}
+«_____»________________
+«| A |» A | A | A | A |
+«‾‾↑‾‾»‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}
+
+This output consists of 3 lines, which will cause an ugly mess if they become long and wrap. Therefore we will limit the output to only 16 cells, after which the next 16 cells will be printed underneath, and so on. This can, of course, be modified to fit your own terminal's width.
+
+Printing the contents of the tape will involve implementing a method \cpp{std::ostream &operator<<(std::ostream &, const Tape &)}, and this method will need access to the \cpp{Tape} class's private members. Therefore we should declare this method as a \cpp{friend} of the \cpp{Tape} class.
+
+\begin{file}{src/tape.hh}{c++}{3}
+#include <ostream>
+\end{file}
+
+\begin{file}{src/tape.hh}{c++}{15}
+    friend std::ostream &operator<<(std::ostream &, const Tape &);
+\end{file}
+
+Now, we will create a struct inside \path{src/tape.cc} called \cpp{TapeOutputLine}, which will encode a set of these 3 rows to be printed. This struct will also have a method which clears these three streams.
+
+\begin{file}{src/tape.cc}{c++}{2}
+#include <sstream>
+#define OUTPUT_CELLS_PER_ROW 16
+\end{file}
+
+\begin{file}{src/tape.cc}{c++}{64}
+struct TapeOutputLine
+{
+    std::stringstream top;
+    std::stringstream middle;
+    std::stringstream bottom;
+    
+    void empty(void)
+    {
+        top.str(std::string());
+        middle.str(std::string());
+        bottom.str(std::string());
+    }
+}
+\end{file}
+
+We want to be able to print an instance of this struct to an output stream.
+
+\begin{file}{src/tape.cc}{c++}{78}
+std::ostream &operator<<(std::ostream &os, const TapeOutputLine &line)
+{
+    return os
+           << line.top.str()
+           << std::endl
+           << line.middle.str()
+           << std::endl
+           << line.bottom.str()
+}
+\end{file}
+
+Now, when we want to print the entire tape to an output stream, we can simply iterate over all of the cells in the tape and add them to an instance of this struct. Once we reach 16 cells, we print the struct followed by a newline, clear the struct, and continue.
+
+\begin{file}{src/tape.cc}{c++}{88}
+std::ostream &operator<<(std::ostream &os, const Tape &tape)
+{
+    const Cell *current = tape.m_leftmost;
+    int index = 0;
+
+    TapeOutputLine line;
+    while (current)
+    {
+        if (index++ >= OUTPUT_CELLS_PER_ROW)
+        {
+            index = 1;
+            os << line << std::endl;
+            line.empty();
+        }
+        
+        uint len = 3 + current->symbol.length();
+
+        line.top << std::string(len, '_');
+        line.middle << "| " << current->symbol << ' ';
+
+        for (uint i = 0; i < len; i++)
+            line.bottom << "‾";
+
+        current = current->right;
+    }
+    return os << line;
+}
+\end{file}
+
+This code is quite ugly, but this is to be expected when trying to output what is essentially ASCII-art. Luckily, this code has no particularly interesting logic to it, and so understanding it fully is not vital. In its current state, this would output something like the following:
+
+\begin{stdout}
+____________________
+| A | A | A | A | A 
+‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}
+
+There are 3 things missing from this output. The first is that the rightmost cell seems to be incomplete. This is because the ``barrier'' between each cell is added on the left-hand side before the cell's content, and so the last cell has no barrier on the right-hand side. We can fix this by adding a barrier when we output each row.
+
+\begin{file}{src/tape.cc}{c++}{78}
+std::ostream &operator<<(std::ostream &os, const TapeOutputLine &line)
+{
+    return os
+           << line.top.str()
+           << '_'
+           << std::endl
+           << line.middle.str()
+           << '|'
+           << std::endl
+           << line.bottom.str()
+           << "‾";
+}
+\end{file}
+
+The output would now look like this:
+\begin{stdout}
+_____________________
+| A | A | A | A | A |
+‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}
+
+The next thing that's missing is an indicator of which cell is currently under the read/write head. We can check which cell this is by simply comparing the currently printing cell to the cell \cpp{tape.m_current}.
+
+\begin{file}{src/tape.cc}{c++}{96}
+        bool isActive = current == tape.m_current;
+\end{file}
+
+Notice how we are using a \cpp{for} loop to add overline characters to the \cpp{bottom} string stream. We can split this loop into two, and then optionally add an arrow in between them if this cell is currently under the read/write head.
+
+\begin{file}{src/tape.cc}{c++}{108}
+        for (uint i = 0; i < len / 2; i++)
+            line.bottom << "‾";
+
+        line.bottom << (isActive ? "↑" : "‾");
+
+        for (uint i = len / 2 + 1; i < len; i++)
+            line.bottom << "‾";
+\end{file}
+
+Now the output would like like this:
+\begin{stdout}
+_____________________
+| A | A | A | A | A |
+‾‾↑‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}
+
+The final thing that's missing is that the cell that's currently under the read/write head should be highlighted in a different colour. This can be fairly easily added in by giving our \cpp{TapeOutputLine} struct another method, \cpp{setHighlighted} which will change the colour of the output. We will also give it a flag, \cpp{isHighlighted}. Furthermore, we will edit the \cpp{empty} method to set the text to be not highlighted.
+
+\begin{file}{src/tape.cc}{c++}{64}
+struct TapeOutputLine
+{
+    std::stringstream top;
+    std::stringstream middle;
+    std::stringstream bottom;
+
+    bool isHighlighted{false};
+
+    void empty(void)
+    {
+        top.str(std::string());
+        middle.str(std::string());
+        bottom.str(std::string());
+        setHighlighted(false);
+    }
+
+    void setHighlighted(bool isHighlighted)
+    {
+        if (isHighlighted == this->isHighlighted)
+            return;
+        this->isHighlighted = isHighlighted;
+        std::string colorChangeChars = isHighlighted ? "\033[31m" : "\033[39m";
+        top << colorChangeChars;
+        middle << colorChangeChars;
+        bottom << colorChangeChars;
+    }
+};
+\end{file}
+
+Note how here we're outputting the characters \cpp{"\033[31m"} to change the output colour to red, and \cpp{"\033[39m"} to change it back to its default colour.
+
+Now we can add a line to the tape output method to call \cpp{setHighlighted}.
+
+\begin{file}{src/tape.cc}{c++}{121}
+        line.setHighlighted(isActive);
+\end{file}
+
+This is now very nearly what we want, as the output would look like this:
+
+\begin{stdout}
+«____»_________________
+«| A »| A | A | A | A |
+«‾‾↑‾»‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}
+
+As you can see, the right-hand barrier of the active cell is not being highlighted. We can fix that by changing our single call to \cpp{setHighlighted} into two calls, one to set and one to unset. Between these calls, we will draw the barrier. That means that the left-hand barrier for the cell on the immediate right of the active cell will be drawn before the highlight is unset.
+
+\begin{file}{src/tape.cc}{c++}{121}
+        if (isActive)
+        {
+            line.setHighlighted(true);
+        }
+
+        line.top << '_';
+        line.middle << '|';
+        line.bottom << "‾";
+
+        if (!isActive)
+        {
+            line.setHighlighted(false);
+        }
+
+        uint len = 2 + current->symbol.length();
+
+        line.top << std::string(len, '_');
+        line.middle << ' ' << current->symbol << ' ';
+\end{file}
+
+We must also edit the method which outputs the \cpp{TapeOutputLine} object to make it reset to the default colour with every new row.
+
+\begin{file}{src/tape.cc}{c++}{92}
+std::ostream &operator<<(std::ostream &os, const TapeOutputLine &line)
+{
+    return os
+           << line.top.str()
+           << '_'
+           << "\033[39m"
+           << std::endl
+           << line.middle.str()
+           << '|'
+           << std::endl
+           << "\033[39m"
+           << line.bottom.str()
+           << "‾"
+           << "\033[39m";
+}
+\end{file}
+
+The output would now be exactly what we want:
+
+\begin{stdout}
+«_____»________________
+«| A |» A | A | A | A |
+«‾‾↑‾‾»‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}
+
+Again, don't worry if this code is hard to understand. It's very difficult to write code like this cleanly, and the underlying concepts are not very interesting. It will, however, be incredibly helpful to have this code in place when it comes to testing and debugging.
+
+Now that we can output the tape, we can use this to output the simulator. This will consist of outputting the state, and then the tape.
+
+Like with the tape, we must declare this output method a \cpp{friend} of the \cpp{Simulator} class in \path{src/simulator.hh}
+
+\begin{file}{src/simulator.hh}{c++}{4}
+#include <ostream>
+\end{file}
+
+\begin{file}{src/simulator.hh}{c++}{10}
+    friend std::ostream &operator<<(std::ostream &, const Simulator &);
+\end{file}
+
+Luckily, it will be much easier to implement this method than it was for the tape. We will do so in \path{src/simulator.cc}.
+
+\begin{file}{src/simulator.cc}{c++}{36}
+std::ostream &operator<<(std::ostream &os, const Simulator &sim)
+{
+    os << "State: " << sim.m_state << std::endl;
+    return os << sim.m_tape;
+}
+\end{file}
+
+The output for the simulator would look like this:
+
+\begin{stdout}
+State: 2
+«_____»________________
+«| A |» A | A | A | A |
+«‾‾↑‾‾»‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}
+
+Note that since the simulator works with integer states, this is what will be output. We will update this later to use the human-readable string states.

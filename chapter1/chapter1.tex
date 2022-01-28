@@ -1,0 +1,19 @@
+\chapter{Introduction}
+
+It is often the goal of Computer Scientists to make our code run more efficiently. This, however, is not always the case. The game of \textit{Code Golf} is a wonderful example. In this game, players must write their code using as few characters as possible. While this has the side-effect of reducing disk usage, this is seldom the point of the exercise. On the contrary, the intention is not to create fast code, or beautiful code, or memory-efficient code --- the intention is to create fun code. For a programmer, there is an undeniable allure to making your job harder for seemingly no reason.
+
+The joy that can be found in these self-imposed restrictions is what motivates the premise of this book. By the end, we will be able to describe fully-fledged algorithms using only the transition rules of a Turing machine.
+
+Fortunately, this book will not simply be a detailed solution to a problem nobody wanted to solve. The principles we explore will generalise very well to any type of non-standard computing engine, and also to programming language design in general. 
+
+The main steps will be as follows:
+\begin{enumerate}
+    \item Designing a machine code format which can encode Turing machine transition rules.
+    \item Creating a Turing machine simulator which can execute that machine code.
+    \item Building a human-readable pseudo-assembly language which can be converted into the machine code.
+    \item Making a compiler for our own high-level C-like language, which turns it into the pseudo-assembly.
+\end{enumerate}
+
+Stringing it all together, the end goal is to be able to write high-level code, and have it run on a Turing machine.
+
+We will be using C++14 to implement these steps. Basic knowledge of this language will definitely be helpful when following along. However, prior knowledge of compilers will not be necessary.

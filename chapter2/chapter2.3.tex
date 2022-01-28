@@ -1,0 +1,532 @@
+\section{Example 2: Reversing a string}
+
+Now we can move on to a trickier example. Suppose our input is some finite sequence of non-empty symbols, and we want to write a program which reverses that sequence.
+
+For simplicity's sake, we will limit the input sequence to be made up of \symb{0}s and \symb{1}s only, but the logic we will use generalises to any finite alphabet.
+
+We will again assume that the machine starts in state \statename{start}, and the read/write head is positioned over the rightmost cell of the input. For example, if the input was \symb{101100}:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+There are of course many ways to write this program, but we might suppose we want to move this symbol one cell to the right like so:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & & $\uparrow$ & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Now we have divided the sequence into two sections. The section on the left is the part of the input which we still need to reverse, and the part on the right is the part we've already reversed. We might hope that we are able to move the next digit over to the right in a similar way, all the way to the end of the right-most section.
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+And again,
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+and so on, until eventually we reach a state like this:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & $\uparrow$ & & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+At first this seems like a good outline, because it looks like the same operation being carried out over and over again, which means that we can use a finite number of states. However, the main issue with this approach is that there is no way to know when the process has finished.
+
+Let's take a closer look at this strategy. Ignoring the start of the program for the moment, suppose we are at one of the intermediate steps, for example:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+We are in some state \statename{X}, and we want some series of rules which we can apply to get us to the next intermediate step:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+at which point we have come back to state \statename{X}.
+
+In plain English, we can describe this series of rules as carrying out the following procedure (we don't yet have to worry about how exactly we would write Turing machine rules to carry it out):
+
+\begin{enumerate}
+    \item Move leftwards past all of the empty cells until you reach a \symb{1} or a \symb{0}.
+    
+    \item Whichever symbol you see, replace it with an empty cell and then start moving rightwards over all of the empty cells until you reach a \symb{1} or a \symb{0}.
+    
+    \item Continue moving to the right until you reach an empty cell. Replace it with whichever symbol you found in step 1. (Remembering which symbol to drop here is a very important topic which we will cover later in the chapter using a construct called ``meta-states''.)
+    
+    \item Go back to the leftmost cell of the right-hand section.
+\end{enumerate}
+
+These four steps are shown below for our example intermediate steps:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & $\uparrow$ & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{Y}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{Z}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & & & $\uparrow$ & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+
+In order to be able to use a finite number of rules, it would be convenient if we implemented this procedure in such a way that it can now repeat again to get us to the next intermediate step, and then to the next, and so on.
+
+However, at each intermediate step, the size of the gap between the two sections increases by one cell. For arbitrarily large inputs, this gap will in turn become arbitrarily large. This becomes an issue once every symbol is copied over from the left section to the right.
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Sure, the sequence has been successfully reversed, but we're still in state \statename{X}. That means that step 1. is about to occur, but now there are no more digits to reach, and our doomed little read/write head will sail off into the infinite leftward void, never to return.
+
+In short, this program will fail because it has no way to differentiate between the task being complete, and what is simply a very large gap between the two parts of the sequence.
+
+We can address this problem in many ways, but in my eyes the most simple is to just expand our alphabet by one symbol, say \symb{T}. This symbol can be arbitrary, but it needs to be a symbol which cannot appear in the input sequence. Now, instead of leaving an empty gap between the two sections, we can leave behind a line of \symb{T} symbols. The intermediate steps might look something like this:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{x}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & & $\uparrow$ & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{x}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+and so on, until eventually we end up with something like this:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+It is now fairly clear to see how the machine can tell that the sequence has finished reversing. It will start off moving left trying to cross the gap of \symb{T}s like normal, but instead of reaching a \symb{1} or a \symb{0} like for the intermediate steps, it will reach an empty cell. This will be our indicator that the job is done. We can then clean up the \symb{T}s we dropped, and terminate gracefully.
+
+So once again, we start in a scenario like this:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Remember, the diagram is only a visualisation aid for this particular input. We need to consider all of the possible situations for any valid input. So, if we are in the \statename{start} state and we see the empty symbol, we are done. The sequence is empty, and so the reversed sequence is also empty. We move in either direction and transition to some termination state.
+
+\begin{stdout}
+Δ(start, ) = (, →, done)
+\end{stdout}
+Otherwise, if we see a \symb{0} or a \symb{1}, we need to replace it with a \symb{T} and move one cell to the right. However, we can't transition into the same state in both cases. The cell we've now moved into will always be empty, so if we are in the same state, seeing the same symbol, then we'd have to place the same symbol down. This will not work, because in the first case (when the symbol was a \symb{0}) we want to drop a \symb{0}, and in the second case (when the symbol was a \symb{1}) we want to drop a \symb{1}. Due to this limitation, we need to use two separate states. We will call them \statename{moving_first_digit_0} and \statename{moving_first_digit_1}.
+
+\begin{stdout}
+Δ(start, 0) = (T, →, moving_first_digit_0)
+Δ(start, 1) = (T, →, moving_first_digit_1)
+\end{stdout}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{moving_first_digit_1}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & & $\uparrow$ & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+As mentioned above, from each of these new states, we need to drop the appropriate symbol. Then we can move left, and go into the state which previously we called \statename{X}. For the sake of readability, here we will name this state \statename{fetch}, because it is the state we are in when we are going to fetch the next digit to carry across. Note that since we no longer need to remember any digits from earlier, we can go back to using a single state for \statename{fetch}.
+\begin{stdout}
+Δ(moving_first_digit_0, ) = (0, ←, fetch)
+Δ(moving_first_digit_1, ) = (1, ←, fetch)
+\end{stdout}
+This is an incredibly important notion when writing any non-trivial programs for a Turing machine, and it is a technique I call ``carrying''.
+
+\statename{moving_first_digit_0} and \statename{moving_first_digit_1} are both used for pretty much exactly the same purpose, but we had to use two states because the machine has to remember which one of the symbols it saw earlier. If the input sequences had been able to consist of $n$ different symbols, then we would have had to use $n$ different states for this.
+
+To help simplify our mental model of the state space, we will define an object called a ``meta-state''. For example, \statename{moving_first_digit_0} and \statename{moving_first_digit_1} are states, but combined, they form the meta-state \statename{moving_first_digit}. We say that this meta-state is carrying one symbol from the set $\{0, 1\}$. Since it is carrying one symbol, we say it is a first degree meta-state.
+
+If hypothetically you wanted the machine to be in some state \statename{foo} but you needed it to remember one symbol from the set $\{0, 1\}$ and one symbol from the set $\{A,B,C\}$, then you would say that \statename{foo} is a second degree meta-state, consisting of the following actual states:
+\begin{quote}
+    \statename{foo_0_A}, \\
+    \statename{foo_0_B}, \\
+    \statename{foo_0_C}, \\
+    \statename{foo_1_A}, \\
+    \statename{foo_1_B}, \\
+    \statename{foo_1_C}
+\end{quote}
+Remember that this is simply to help us think about our algorithms. The Turing machine itself cannot work with meta-states.
+
+Going back to our example, we left off here:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{fetch}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Now we need to travel left until we hit a \symb{0} or \symb{1}, at which point we can replace it with a \symb{T}, move to the right, and move into meta-state \statename{fetching} which carries a symbol from $\{0, 1\}$.
+\begin{stdout}
+Δ(fetch, T) = (T, ←, fetch)
+Δ(fetch, 0) = (T, →, fetching_0)
+Δ(fetch, 1) = (T, →, fetching_1)
+\end{stdout}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{fetching_0}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+From here we travel rightwards until we reach an empty cell, at which point we drop whichever symbol we are carrying, and move back towards the left, into a state called \statename{dropped}
+\begin{stdout}
+Δ(fetching_0, T) = (T, →, fetching_0)
+Δ(fetching_1, T) = (T, →, fetching_1)
+
+Δ(fetching_0, 0) = (0, →, fetching_0)
+Δ(fetching_1, 0) = (0, →, fetching_1)
+
+Δ(fetching_0, 1) = (1, →, fetching_0)
+Δ(fetching_1, 1) = (1, →, fetching_1)
+
+Δ(fetching_0, ) = (0, ←, dropped)
+Δ(fetching_1, ) = (1, ←, dropped)
+\end{stdout}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{dropped}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+From here, we just need to travel leftwards until we reach the string of \symb{T}s at which point we can go back to state \statename{fetch}.
+\begin{stdout}
+Δ(dropped, 0) = (0, ←, dropped)
+Δ(dropped, 1) = (1, ←, dropped)
+Δ(dropped, T) = (T, ←, fetch)
+\end{stdout}
+We've now created a loop, which will continue to run through all of the intermediate steps until eventually we run out of digits to \statename{fetch}.
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{fetch}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{T}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & $\uparrow$ & & & & & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+At this point we've finished the task, so we just need to travel back to the output string, clearing up the \symb{T}s as we go.
+\begin{stdout}
+Δ(fetch, ) = (, →, done)
+Δ(done, T) = (, →, done)
+\end{stdout}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{done}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & $\uparrow$ & & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+Lo and behold, the sequence is successfully reversed.
+
+All in all, there are 21 transition rules which define this program.
+\begin{stdout}
+Δ(start, ) = (, →, done)
+
+Δ(start, 0) = (T, →, moving_first_digit_0)
+Δ(start, 1) = (T, →, moving_first_digit_1)
+
+Δ(moving_first_digit_0, ) = (0, ←, fetch)
+Δ(moving_first_digit_1, ) = (1, ←, fetch)
+
+Δ(fetch, T) = (T, ←, fetch)
+Δ(fetch, 0) = (T, →, fetching_0)
+Δ(fetch, 1) = (T, →, fetching_1)
+
+Δ(fetching_0, T) = (T, →, fetching_0)
+Δ(fetching_1, T) = (T, →, fetching_1)
+Δ(fetching_0, 0) = (0, →, fetching_0)
+Δ(fetching_1, 0) = (0, →, fetching_1)
+Δ(fetching_0, 1) = (1, →, fetching_0)
+Δ(fetching_1, 1) = (1, →, fetching_1)
+
+Δ(fetching_0, ) = (0, ←, dropped)
+Δ(fetching_1, ) = (1, ←, dropped)
+
+Δ(dropped, 0) = (0, ←, dropped)
+Δ(dropped, 1) = (1, ←, dropped)
+Δ(dropped, T) = (T, ←, fetch)
+
+Δ(fetch, ) = (, →, done)
+Δ(done, T) = (, →, done)
+\end{stdout}
+Due to the nature of meta-states, the numbers of rules and states grow exponentially with the size of the alphabet. This will be something to bear in mind when we come to design our pseudo-assembly language.

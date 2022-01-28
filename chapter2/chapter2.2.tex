@@ -1,0 +1,724 @@
+\section{Example 1: Output $n$ of a given symbol}
+
+To really get a feel for how these machines operate, we will try to write a Turing machine program which takes in as input a digit from 0 to 3, and outputs the symbol \symb{A} repeated that many times.
+
+We will illustrate the operation of the machine at any given time using one of these diagrams:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccc}
+\multicolumn{9}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{$\hdots$} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c}{$\hdots$}
+\\ \hline
+& & & & $\uparrow$ & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+This diagram shows that the machine is in state \statename{start} and the read/write head is over a cell which contains the symbol \symb{3}, with the rest of the cells containing the empty symbol. This means that the next rule which will be executed corresponds to the transition $\Delta(\textrm{start}, \textrm{3})$, if such a transition exists in the ruleset.
+
+In fact, a ruleset which completes the task described above is the following:
+
+\begin{stdout}
+Δ(start, 0) = ( , →, done) 
+Δ(start, 1) = (0, →, go_to_end)
+Δ(start, 2) = (1, →, go_to_end)
+Δ(start, 3) = (2, →, go_to_end)
+Δ(go_to_end, A) = (A, →, go_to_end)
+Δ(go_to_end, ) = (A, ←, start)
+Δ(start, A) = (A, ←, start)
+\end{stdout}
+
+Remember that this is unlike a program in imperative programming languages like C, because the rules are not executed from top to bottom. We could shuffle the lines of this program randomly and the execution of the Turing machine would be indistinguishable.
+
+If we were to let the Turing machine run, we would see the following progression. Looking at the rules above, the jump from each diagram to the next should make sense.
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{3}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & $\uparrow$ & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & $\uparrow$ & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & $\uparrow$ & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & $\uparrow$ & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{done}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & $\uparrow$ & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+    
+And it terminates here because there are no rules which tell the machine what to do when it is in state \statename{done} and the current cell contains the symbol \symb{A}.
+
+As you can see, the program executed successfully and returned the expected output --- a string of three \symb{A}s. It's worth taking some time to convince yourself that it would still work if the input was \symb{2}, \symb{1}, or \symb{0}.
+
+It's also worth considering how we might extend the ruleset to accept larger inputs. Let's say we also wanted to be able to handle the input \symb{4}. Well, luckily, we can achieve this by only adding a single rule:
+\begin{stdout}
+Δ(start, 0) = ( , →, done) 
+Δ(start, 1) = (0, →, go_to_end)
+Δ(start, 2) = (1, →, go_to_end)
+Δ(start, 3) = (2, →, go_to_end)
+Δ(start, 4) = (3, →, go_to_end)
+Δ(go_to_end, A) = (A, →, go_to_end)
+Δ(go_to_end, ) = (A, ←, start)
+Δ(start, A) = (A, ←, start)
+\end{stdout}
+Similarly, we can handle inputs up to 9 with this method:
+\begin{stdout}
+Δ(start, 0) = ( , →, done) 
+Δ(start, 1) = (0, →, go_to_end)
+Δ(start, 2) = (1, →, go_to_end)
+Δ(start, 3) = (2, →, go_to_end)
+Δ(start, 4) = (3, →, go_to_end)
+Δ(start, 5) = (4, →, go_to_end)
+Δ(start, 6) = (5, →, go_to_end)
+Δ(start, 7) = (6, →, go_to_end)
+Δ(start, 8) = (7, →, go_to_end)
+Δ(start, 9) = (8, →, go_to_end)
+Δ(go_to_end, A) = (A, →, go_to_end)
+Δ(go_to_end, ) = (A, ←, start)
+Δ(start, A) = (A, ←, start)
+\end{stdout}
+
+However, what if we want to handle arbitrarily large inputs? We could of course continue in the same manner, handling the two-character symbols (each on a single cell) \symb{10} and \symb{11} and so on, but it's clear that this is just pushing the problem back. To handle arbitrarily large inputs in this way, we would need infinitely many rules and an infinite set of symbols.
+
+Instead, we will have to enable our program to handle having the input spread out across multiple cells. For example, if the input were 1729, the Turing machine would start in the following situation:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{7}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{9}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+
+\label{chapter:initialCellConvention}Note that we've decided to start with the read/write head over the rightmost digit of the input, but this is arbitrary. Now we only need to handle finitely many symbols --- the digits \symb{0}-\symb{9}, the letter \symb{A}, and the empty symbol.
+
+For the sake of making the program easier to write manually, let's also say that the program works in binary, so for example if the input were 5 (which is written 101 in binary), then the Turing machine would start off as:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+        
+Now we can look at the program we used before and try to generalise it for multi-cell inputs. The three states we used were \statename{start}, \statename{go_to_end}, and \statename{done}. The \statename{start} state was used in three cases:
+\begin{itemize}
+    \item When the read/write head is over a non-zero digit, and must decrement it,
+    \item When the read/write head is over a zero digit, and must terminate,
+    \item When the read/write head is somewhere in the list of \symb{A}s and must return back to check the input digit.
+\end{itemize}
+We can use the same state for all of these cases because there is no overlap between the symbols which will be encountered in them.
+
+The \statename{go_to_end} state was used for when the read/write head is travelling to the right-hand-side of the list of \symb{A}s, and for dropping an additional \symb{A} when it gets there.
+
+The \statename{done} state, trivially, is for when the program has terminated.
+
+For the sake of brevity and clarity, I may use anthropomorphism and metonymy to describe the Turing machine, using phrases such as ``we are in state \statename{X}'' to mean ``the Turing machine is in state \statename{X}''. Furthermore, I might use phrases such as ``we see symbol \symb{a}'', ``the machine sees symbol \symb{a}'', or ``state \statename{X} sees symbol \symb{a}'' all to mean that the read/write head is currently over a cell containing the symbol \symb{a}. Similarly, I may say that in a given situation, we ``want to find'' a symbol, or even that a particular state ``wants to find'' a symbol. By this I mean that when the Turing machine is in that state, it should stay in that state and continue to move in the same direction, leaving all encountered symbols unchanged except for the one it ``wants to find''. Hopefully this type of shorthand is easily understood, and makes the logic behind our programs even clearer. However, if you find yourself getting lost in the abstractions it might be helpful to examine these metaphors in the context of what the machine itself is actually doing.
+
+With this in mind, a version of our program which can handle multi-cell inputs might look as follows (remembering that we are working in binary):
+
+\begin{quote}
+    If we are in state \statename{start} and we see a \symb{1}, decrement it to a \symb{0}, move to the right, and transition into the \statename{go_to_end} state.
+    
+    If we are in state \statename{start} and we see a \symb{0}, we can replace it with a \symb{1} and move to the left, staying in the \statename{start} state. This is because when we decrement the number, the \symb{0} rolls over to a \symb{1} and we must similarly decrement the digit to its left.
+\end{quote}
+
+With these two rules, two cases may occur:
+\begin{itemize}
+    \item The input number was non-zero, and it has now been decremented. The read/write head is somewhere in the middle of it, or on the space immediately after it. The new state is \statename{go_to_end}.
+    
+    \item The input number was zero, in which case it has been set to a string of \symb{1} symbols. The read/write head is in the empty cell immediately before this string, and the state is still \statename{start}
+\end{itemize}
+
+We can handle the latter case fairly simply with the following rules:
+
+\begin{quote}
+    If we are in state \statename{start} and we see the empty symbol, we keep it empty, move to the right, and go to state \statename{done}.
+    
+    If we are in state \statename{done} and we see a \symb{1}, we replace it with the empty symbol, move to the right, and stay in state \statename{done}.
+\end{quote}
+
+Here, the \statename{done} state is used to clean up that string of \symb{1}s, and the program terminates when there are no more to clean up.
+
+Now we can handle the other case. We need to travel to the end of the input string, and also of the string of \symb{A}s we've placed so far. Once we've gotten there, drop an \symb{A}, turn back left, and go back to the input number to start again.
+
+\begin{quote}
+    If we are in state \statename{go_to_end} and we see a \symb{0}, \symb{1}, or \symb{A}, leave it as it is, move to the right, and stay in state \statename{go_to_end}.
+    
+    If we are in state \statename{go_to_end} and we see an empty cell, replace it with an \symb{A}, move left, and go to state \statename{start}.
+\end{quote}
+
+These are the same rules which governed the \statename{go_to_end} state in the single-cell-input example (except that now this state might encounter a \symb{0} or \symb{1}). As with that example, we need a rule which lets a machine in the \statename{start} state which is somewhere in the string of \symb{A}s find its way back to the input number.
+
+\begin{quote}
+    If we are in state \statename{start} and we see an \symb{A}, then we leave it as an \symb{A}, go to the left, and remain in state \statename{start}.
+\end{quote}
+
+Eventually, the read/write head will find its way back to the rightmost digit of the input number, at which point one of our first two rules will be executed, and the cycle continues until the program terminates.
+
+All of these rules can be expressed using the $\Delta$ function notation as follows:
+\label{program:binaryStringOfAs}
+\begin{stdout}
+Δ(start, 1) = (0, →, go_to_end)
+Δ(start, 0) = (1, ←, start)
+Δ(start, ) = (, →, done)
+Δ(done, 1) = (, →, done)
+Δ(go_to_end, 0) = (0, →, go_to_end)
+Δ(go_to_end, 1) = (1, →, go_to_end)
+Δ(go_to_end, A) = (A, →, go_to_end)
+Δ(go_to_end, ) = (A, ←, start)
+Δ(start, A) = (A, ←, start)
+\end{stdout}
+
+With an input of 3 (11 in binary), the program will run in the following way:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & $\uparrow$ & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & $\uparrow$ & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{go_to_end}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & $\uparrow$ & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & $\uparrow$ & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{start}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & $\uparrow$ & & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{done}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & $\uparrow$ & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{done}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & $\uparrow$ & & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{done}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & $\uparrow$ & & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+The machine terminates with 3 \symb{A}s on the tape just as we expect. The exact same logic can be used to create a version of this program which works in base 10 rather than in binary.
+\begin{stdout}
+Δ(start, 1) = (0, →, go_to_end)
+Δ(start, 2) = (1, →, go_to_end)
+Δ(start, 3) = (2, →, go_to_end)
+Δ(start, 4) = (3, →, go_to_end)
+Δ(start, 5) = (4, →, go_to_end)
+Δ(start, 6) = (5, →, go_to_end)
+Δ(start, 7) = (6, →, go_to_end)
+Δ(start, 8) = (7, →, go_to_end)
+Δ(start, 9) = (8, →, go_to_end)
+Δ(start, 0) = (9, ←, start)
+Δ(start, ) = (, →, done)
+Δ(done, 9) = (, →, done)
+Δ(go_to_end, 0) = (0, →, go_to_end)
+Δ(go_to_end, 1) = (1, →, go_to_end)
+Δ(go_to_end, 2) = (2, →, go_to_end)
+Δ(go_to_end, 3) = (3, →, go_to_end)
+Δ(go_to_end, 4) = (4, →, go_to_end)
+Δ(go_to_end, 5) = (5, →, go_to_end)
+Δ(go_to_end, 6) = (6, →, go_to_end)
+Δ(go_to_end, 7) = (7, →, go_to_end)
+Δ(go_to_end, 8) = (8, →, go_to_end)
+Δ(go_to_end, 9) = (9, →, go_to_end)
+Δ(go_to_end, A) = (A, →, go_to_end)
+Δ(go_to_end, ) = (A, ←, start)
+Δ(start, A) = (A, ←, start)
+\end{stdout}

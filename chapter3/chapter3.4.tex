@@ -1,0 +1,190 @@
+\section {Unit Tests for the Encoder}
+
+After all that work, it would be great to see just how easy unit tests are to write in our framework.
+
+We will call our first test \cpp{simpleTest} and it will use our example from page \pageref{program:simpleTest},
+
+\begin{stdout}
+Δ(start, 1) = (0, →, go_to_end)
+Δ(start, 0) = (1, ←, start)
+Δ(start, ) = (, →, done)
+Δ(done, 1) = (, →, done)
+Δ(go_to_end, 0) = (0, →, go_to_end)
+Δ(go_to_end, 1) = (1, →, go_to_end)
+Δ(go_to_end, A) = (A, →, go_to_end)
+Δ(go_to_end, ) = (A, ←, start)
+Δ(start, A) = (A, ←, start)
+\end{stdout}
+
+for which we would expect the following machine code:
+
+\begin{stdout}
+54 55 52 49 4E 47 09 00 31 00 30 00 01 01 00 30 00 31 00 00 00 00 00 00 01 02 02 31 00 00 01 02 01 30 00 30 00 01 01 01 31 00 31 00 01 01 01 41 00 41 00 01 01 01 00 41 00 00 00 00 41 00 41 00 00 00
+\end{stdout}
+
+To perform this test we will need a helper function which can convert a string into hex.
+
+We will put this in \path{src/tests/encoder-tests.cc}. We will need to include the \path{iomanip} and \path{sstream} libraries. While we're at it, let's include \path{encoder.hh} because we'll need it soon.
+
+\begin{file}{src/tests/encoder.cc}{c++}{1}
+#include <sstream>
+#include <iomanip>
+#include "tests.hh"
+#include "../encoder.hh"
+
+std::string stringToHex(const std::string &input)
+{
+    std::stringstream hex;
+    for (const unsigned char c : input)
+    {
+        hex
+            << std::uppercase
+            << std::setfill('0')
+            << std::setw(2)
+            << std::hex << (int)c;
+    }
+    return hex.str();
+}
+\end{file}
+
+This function works by iterating over every character from the string and converting it to hex, padding it with a \cpp{'0'} on the left if it's only one digit, and setting it to uppercase (just so we don't have to worry about type-insensitive string comparisons).
+
+We can now write our simple unit test.
+
+\begin{file}{src/tests/encoder-tests.cc}{c++}{20}
+static bool simpleTest(void)
+{
+    Encoder encoder;
+    encoder.addRule("start", "1", "0", Direction::RIGHT, "go_to_end");
+    encoder.addRule("start", "0", "1", Direction::LEFT, "start");
+    encoder.addRule("start", "", "", Direction::RIGHT, "done");
+    encoder.addRule("done", "1", "", Direction::RIGHT, "done");
+    encoder.addRule("go_to_end", "0", "0", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "1", "1", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "A", "A", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "", "A", Direction::LEFT, "start");
+    encoder.addRule("start", "A", "A", Direction::LEFT, "start");
+
+    std::ostringstream os;
+
+    encoder.output(os);
+
+    auto result = stringToHex(os.str());
+
+    std::string expected =
+        "545552494E4709003100300001010030"
+        "00310000000000000102023100000102"
+        "01300030000101013100310001010141"
+        "00410001010100410000000041004100"
+        "0000";
+
+    return result == expected;
+}
+\end{file}
+
+We also need to modify our \cpp{allTests} method to run this test.
+
+\begin{file}{src/tests/encoder-tests.cc}{c++}{49}
+void tests::encoder::allTests(tests::Record &record)
+{
+    RUN_TEST(simpleTest, record);
+
+    return;
+}
+\end{file}
+
+For now, this is the only test we will write for the encoder itself. However, we will also test the VLQ encoding method we implemented. We will put this in its own file, \path{src/tests/vlq-tests.cc}.
+
+\begin{file}{src/tests/vlq-tests.cc}{c++}{1}
+#include <sstream>
+#include "tests.hh"
+#include "../vlq.hh"
+
+void tests::vlq::allTests(tests::Record &record) {
+    return;
+}
+\end{file}
+
+To make sure that this component's tests are run by the tester, all we have to do is modify the \cpp{FOR_ALL_COMPONENTS} macro to also use this component.
+
+\begin{file}{src/tests/tests.hh}{c++}{8}
+#define FOR_ALL_COMPONENTS \
+    X(encoder)             \
+    X(vlq)
+\end{file}
+
+For our first test we can check that the number 0 is correctly encoded as a null byte.
+
+\begin{file}{src/tests/vlq-tests.cc}{c++}{5}
+static bool is0EncodedCorrectly(void)
+{
+    std::stringstream os;
+    vlq::writeToStream(os, 0);
+    return os.str() == std::string("\0", 1);
+}
+\end{file}
+
+You may notice that for the comparison we use the expression \cpp{std::string("\0", 1)}. We need to specify the length of the string in the constructor because otherwise it assumes that the first argument is a C-style null-terminated string, and so will construct the empty string instead of a string containing a null byte.
+
+For our next test we can ensure that a number which should only occupy a single octet is encoded correctly. Let's use 50. The expected octet is 0x32.
+
+\begin{file}{src/tests/vlq-tests.cc}{c++}{12}
+static bool is50EncodedCorrectly(void)
+{
+    std::stringstream os;
+    vlq::writeToStream(os, 50);
+    return os.str() == "\x32";
+}
+\end{file}
+
+Finally we'll add a test for the multi-octet case. Let's use 123456789. The expected octets are 0xBAEF9A15.
+
+\begin{file}{src/tests/vlq-tests.cc}{c++}{19}
+static bool is123456789EncodedCorrectly(void)
+{
+    std::stringstream os;
+    vlq::writeToStream(os, 123456789);
+    return os.str() == "\xBA\xEF\x9A\x15";
+}
+\end{file}
+
+Now we can modify \cpp{tests::vlq::allTests} to actually run these tests.
+
+\begin{file}{src/tests/vlq-tests.cc}{c++}{26}
+void tests::vlq::allTests(tests::Record &record)
+{
+
+    RUN_TEST(is0EncodedCorrectly, record);
+    RUN_TEST(is50EncodedCorrectly, record);
+    RUN_TEST(is123456789EncodedCorrectly, record);
+
+    return;
+}
+\end{file}
+
+All we need to do now is modify the \code{tests} target in the Makefile to also compile \path{src/tests/vlq-tests.cc}.
+
+\begin{file}{Makefile}{make}{4}
+tests: vlq encoder
+	$(CC) $(FLAGS) -o dist/tests dist/encoder.o \
+	                             dist/vlq.o \
+	                             src/tests/vlq-tests.cc \
+	                             src/tests/encoder-tests.cc \
+	                             src/tests/tests.cc
+\end{file}
+
+Now when we compile and run the tester we will be thrilled to see a lot of green ticks.
+
+\begin{stdout}
+Running encoder tests:
+  simpleTest: ✅
+PASSED: 1/1 ✅
+
+Running vlq tests:
+  is0EncodedCorrectly: ✅
+  is50EncodedCorrectly: ✅
+  is123456789EncodedCorrectly: ✅
+PASSED: 3/3 ✅
+
+OVERALL PASSED: 4/4 ✅
+\end{stdout}

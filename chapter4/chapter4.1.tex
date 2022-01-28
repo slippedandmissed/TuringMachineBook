@@ -1,0 +1,352 @@
+\section{Implementing the Simulator}
+
+The next step in our project is creating a tool which can simulate a Turing machine, and thereby execute our machine code programs. We will call this tool \textit{TMVM}, or ``Turing Machine Virtual Machine''.
+
+We will be writing the code for TMVM in the same project as the encoder and decoder. At this point, our project directory should contain the following files and subdirectories:
+
+\structure{%
+.1 \textit{[Project Directory]}.
+.2 src/.
+.3 tests/.
+.4 decoder-tests.cc.
+.4 encoder-tests.cc.
+.4 tests.cc.
+.4 tests.hh.
+.4 vlq-tests.hh.
+.3 decoder.cc.
+.3 decoder.hh.
+.3 encoder.cc.
+.3 encoder.hh.
+.3 program.hh.
+.3 rule.hh.
+.3 vlq.cc.
+.3 vlq.hh.
+.2 Makefile.
+}
+
+To create our simulator, we must have some sort of data structure which can encapsulate the tape. We will do so in a new file, \path{src/tape.hh}, in which we will first define a struct to be used for each cell of the tape.
+
+\begin{file}{src/tape.hh}{c++}{1}
+#pragma once
+
+struct Cell
+{
+    Cell *left{nullptr};
+    Cell *right{nullptr};
+    std::string symbol{""};
+};
+\end{file}
+
+This implementation of \cpp{Cell} is a doubly-linked list. This is to say that each cell contains a pointer to the cell to its left and to its right. This may be a \cpp{nullptr} if we have not yet allocated any cells to the left or right of this cell.
+
+Now we can create a \cpp{Tape} class which will contain a pointer to the current cell being looked at by the read/write head of the simulated Turing machine, as well as pointers to the leftmost and rightmost cells which have been allocated. This class also needs to have methods to move the read/write head to the left or the right, allocating new cells when it needs to do so. However, these methods will be private for reasons which will become clear soon.
+
+\begin{file}{src/tape.hh}{c++}{10}
+class Tape
+{
+private:
+    Cell *m_current;
+    Cell *m_leftmost;
+    Cell *m_rightmost;
+
+    void moveLeft(void);
+    void moveRight(void);
+\end{file}
+
+The tape will be constructed with a vector of symbols to put on the tape. We will also need to define a destructor for this class, because the tape itself will be responsible for deallocating the memory used by each of its cells.
+
+Furthermore, this class will expose a public method, \cpp{move}, which accepts as its parameter a value from the \cpp{Direction} enum. This can be an inline method which, depending on the value of the argument, will call one of the \cpp{moveLeft} or \cpp{moveRight} private methods.
+
+To declare each of these, we need to bring in the following headers:
+
+\begin{file}{src/tape.hh}{c++}{2}
+#include <vector>
+#include "rule.hh"
+\end{file}
+
+\begin{file}{src/tape.hh}{c++}{22}
+public:
+    Tape(std::vector<std::string> initialSymbols);
+    ~Tape();
+
+    inline void move(const Direction direction)
+    {
+        switch (direction)
+        {
+        case LEFT:
+            return moveLeft();
+        case RIGHT:
+            return moveRight();
+        }
+        return;
+    }
+\end{file}
+
+This class will also have two more methods which allow getting and setting of the symbol in the current cell.
+
+\begin{file}{src/tape.hh}{c++}{38}
+    inline std::string getSymbol(void) const { return m_current->symbol; }
+    inline void setSymbol(const std::string &s) const
+    {
+        m_current->symbol = s;
+    }
+\end{file}
+
+Yet another method on this class will return a vector containing the symbols of all of the allocated cells.
+
+\begin{file}{src/tape.hh}{c++}{44}
+    inline std::vector<std::string> getAllSymbols(void) const
+    {
+        std::vector<std::string> symbols;
+        const Cell *current = m_leftmost;
+        while (current)
+        {
+            symbols.push_back(current->symbol);
+            current = current->right;
+        }
+        return symbols;
+    }
+};
+\end{file}
+
+
+The first method we will implement is the constructor, in \path{src/tape.cc}.
+
+\begin{file}{src/tape.cc}{c++}{1}
+#include "tape.hh"
+
+Tape::Tape(std::vector<std::string> initialSymbols)
+{
+    m_current = new Cell;
+    m_leftmost = m_current;
+    m_rightmost = m_current;
+    for (auto symbol : initialSymbols)
+    {
+        m_current->symbol = symbol;
+        moveRight();
+    }
+    moveLeft();
+}
+\end{file}
+
+The constructor starts by allocating a single empty cell, and updating the \cpp{m_current}, \cpp{m_leftmost}, and \cpp{m_rightmost} pointers to point to that cell. Then, we iterate over every symbol in the argument, setting the current cell's symbol to each one in turn, and then moving one cell to the right. We can assume that the \cpp{moveRight} method which we will implement soon will allocate a new cell to the right of the current one, and update the \cpp{m_current} pointer to this new cell (as well as the \cpp{m_rightmost} pointer).
+
+Finally, we move one cell to the left. This will result in the machine starting with the read/write head over the rightmost cell in the input string, rather than an empty cell to the right of this. This is arbitrary, but consistent with the convention we established in section \ref{chapter:initialCellConvention}.
+
+Moving on to the destructor, we simply have to start at the cell pointed to by \cpp{m_leftmost}, and iterate rightwards through the linked list, deleting each cell as we encounter it.
+
+\begin{file}{src/tape.cc}{c++}{16}
+Tape::~Tape()
+{
+    while (m_leftmost)
+    {
+        Cell *next = m_leftmost->right;
+        delete m_leftmost;
+        m_leftmost = next;
+    }
+}
+\end{file}
+
+Now we can implement the \cpp{moveLeft} method. We will first check whether there is no allocated cell to the left of the current one. If this is the case, we create a new cell and insert it into the doubly-linked list. Either way, we then set \cpp{m_current} to point to the cell on the left of the current one.
+
+\begin{file}{src/tape.cc}{c++}{26}
+void Tape::moveLeft(void)
+{
+    if (!(m_current->left))
+    {
+        m_current->left = new Cell;
+        m_current->left->right = m_current;
+        m_leftmost = m_current->left;
+    }
+    m_current = m_current->left;
+\end{file}
+
+One minor memory optimisation we can add at this point is to check whether the rightmost allocated cell is empty. If this is the case, we can deallocate it and remove it from the linked list. That way we will not be left with a string of empty cells on the right-hand side of the tape.
+
+\begin{file}{src/tape.cc}{c++}{35}
+    if (m_rightmost->symbol.length() == 0)
+    {
+        Cell *next = m_rightmost->left;
+        next->right = nullptr;
+        delete m_rightmost;
+        m_rightmost = next;
+    }
+}
+\end{file}
+
+The implementation for \cpp{moveRight} is almost identical, except for the switching of left and right.
+
+\begin{file}{src/tape.cc}{c++}{44}
+void Tape::moveRight(void)
+{
+    if (!(m_current->right))
+    {
+        m_current->right = new Cell;
+        m_current->right->left = m_current;
+        m_rightmost = m_current->right;
+    }
+    m_current = m_current->right;
+    if (m_leftmost->symbol.length() == 0)
+    {
+        Cell *next = m_leftmost->right;
+        next->left = nullptr;
+        delete m_leftmost;
+        m_leftmost = next;
+    }
+}
+\end{file}
+
+Now that we have a \cpp{Tape} class and a \cpp{Program} struct, we can create a \cpp{Simulator} class which will execute a given program on a given tape.
+
+We will declare this class in a new header, \path{src/simulator.hh}, and define it in an accompanying source file, \path{src/simulator.cc}.
+
+The class will have a pointer to the program it is executing, and a reference to the tape on which it is executing the program. It will also store its current state.
+
+\begin{file}{src/simulator.hh}{c++}{1}
+#pragma once
+#include <memory>
+#include "program.hh"
+#include "tape.hh"
+
+class Simulator
+{
+private:
+    std::unique_ptr<Program> m_program;
+    Tape &m_tape;
+    state_t m_state{0};
+\end{file}
+
+Note that we are initialising \cpp{m_state} to 0. This corresponds to the fact that in the encoder, we reserved state 0 as the \statename{start} state.
+
+We will also need an efficient data structure which allows us to determine which rule, if any, applies at a given point in time. Since our states are stored as indices, we can use an array for this. Stored at each index of the array will be pointers to all of the rules which could apply when the current state is equal to that index. One might imagine using an array of vectors to this effect.
+
+\begin{file}{src/simulator.hh}{c++}{14}
+    std::vector<const Rule*> *m_ruleMap{nullptr};
+\end{file}
+
+However, we can improve further. Each of these vectors would contain pointers to rules which share a starting state, but have different matching symbols. As such, more appropriate than a vector would perhaps be a hash table, mapping the matching symbols to rule pointers, like so:
+
+\begin{file}{src/simulator.hh}{c++}{3}
+#include <unordered_map>
+\end{file}
+
+\begin{file}{src/simulator.hh}{c++}{14}
+    std::unordered_map<std::string, const Rule*> *m_ruleMap{nullptr};
+\end{file}
+
+This is the data structure we will use.
+
+As well as the constructor, we must also implement a destructor to dispose of the \cpp{m_ruleMap} array. The class will also expose a getter for the current state, and a method which simply performs one step of the simulation (i.e., applies at most a single rule).
+
+\begin{file}{src/simulator.hh}{c++}{16}
+public:
+    Simulator(std::unique_ptr<Program>, Tape &);
+    ~Simulator();
+
+    inline state_t getState(void) const { return m_state; };
+    bool step(void);
+};
+\end{file}
+
+The only issue is that we don't know the required length of the \cpp{m_ruleMap} array. We need this length to be equal to the number of states so that we can use the state number as an index into this array, but we don't know the state count without looping over the entire vector of rules. Instead, we will modify the decoder to keep track of the state count for us, and store it in the \cpp{Program} struct.
+
+\begin{file}{src/program.hh}{c++}{5}
+struct Program
+{
+    std::vector<Rule> rules;
+    state_t numStates{0};
+};
+\end{file}
+
+After adding this field to the \cpp{Program} struct, we only need to add a small amount of code to \path{src/decoder.cc}.
+
+\begin{file}{src/decoder.cc}{c++}{1}
+#include <algorithm>
+\end{file}
+
+\begin{file}{src/decoder.cc}{c++}{30}
+        program.numStates = std::max({program.numStates,
+                                      program.rules[i].startState,
+                                      program.rules[i].endState});
+    }
+
+    program.numStates++;
+\end{file}
+
+Note that we must increment the \cpp{program.numState} member after the loop because indices are 0-indexed, but counts are 1-indexed. This is to say, if the greatest state is state \cpp{34}, then the number of states is 35.
+
+We will also modify our decoder unit test, \cpp{simpleTest}, to check for the correct state count.
+
+\begin{file}{src/tests/decoder-tests.cc}{c++}{21}
+    if (program->numStates != 3)
+        return false;
+\end{file}
+
+Now, in \path{src/simulator.cc}, we can define the constructor of the \cpp{Simulator} class.
+
+\begin{file}{src/simulator.cc}{c++}{1}
+#include "simulator.hh"
+
+Simulator::Simulator(std::unique_ptr<Program> program, Tape &tape)
+    : m_program(std::move(program)), m_tape(tape)
+{
+    m_ruleMap =
+        new std::unordered_map<std::string,
+                               const Rule *>[m_program->numStates];
+
+    for (const Rule &rule : m_program->rules)
+    {
+        m_ruleMap[rule.startState][rule.matchSymbol] = &rule;
+    }
+};
+\end{file}
+
+First, we allocate the \cpp{m_ruleMap} array to have as many entries as there are states in the program. Then, we iterate over each rule, placing it in the appropriate spot in the array and the relevant hash table.
+
+The destructor is quite simple.
+
+\begin{file}{src/simulator.cc}{c++}{16}
+Simulator::~Simulator()
+{
+    delete[] m_ruleMap;
+}
+\end{file}
+
+Next, we can implement the core functionality of the simulator. This, of course, is the \cpp{step} method. First, we need to get the hash table containing rules which apply in the current state.
+
+\begin{file}{src/simulator.cc}{c++}{21}
+bool Simulator::step(void)
+{
+    auto rulesForThisState = m_ruleMap[m_state];
+\end{file}
+
+Then, we look up the current symbol (that is, the symbol in the current cell) in this hash table. If we find nothing, then we can return \cpp{false}, as no rule applies to the current situation. This also means that the program has finished executing.
+
+\begin{file}{src/simulator.cc}{c++}{24}
+    auto search = rulesForThisState.find(m_tape.getSymbol());
+    if (search == rulesForThisState.end())
+    {
+        return false;
+    }
+\end{file}
+
+On the other hand, if the search is successful, we can get the pointer to the rule which applies, and apply it.
+
+\begin{file}{src/simulator.cc}{c++}{29}
+    const Rule *rule = search->second;
+    m_tape.setSymbol(rule->replaceSymbol);
+    m_tape.move(rule->direction);
+    m_state = rule->endState;
+    return true;
+}
+\end{file}
+
+We can now add two more targets to the Makefile.
+
+\begin{file}{Makefile}{make}{13}
+simulator: dist-dir
+	$(CC) $(CFLAGS) -o dist/simulator.o -c src/simulator.cc
+
+tape: dist-dir
+	$(CC) $(CFLAGS) -o dist/tape.o -c src/tape.cc
+\end{file}

@@ -1,0 +1,343 @@
+\section {Creating a Unit Testing Framework}
+
+Before moving on it's worth creating some tests for the encoder. Additionally, it will save time in the long run if we implement our own basic unit testing framework, which we can extend to include tests for all of the other components we will add.
+
+We will create a directory \path{src/tests} which will include our tests and our framework. This directory will be structured as follows:
+
+\structure {%
+.1 src/tests/.
+.2 [component]-tests.cc.
+.2 [component]-tests.cc.
+.2 [component]-tests.cc.
+.2 $\vdots$.
+.2 tests.cc.
+.2 tests.hh.
+}
+Where \code{[component]} is the name of a component we'd want to test, such as ``\code{encoder}''.
+
+For now, we will only create the following files:
+\structure {%
+.1 src/tests/.
+.2 encoder-tests.cc.
+.2 tests.cc.
+.2 tests.hh.
+}
+
+We will want some data structure to keep track of how many tests have been run, and how many of them have passed. We will define this structure in \path{src/tests/tests.hh}.
+
+\begin{file}{src/tests/tests.hh}{c++}{1}
+#pragma once
+#include <iostream>
+
+namespace tests
+{
+    struct Record
+    {
+        unsigned int passed;
+        unsigned int total;
+    
+    public:
+        Record &operator+=(const Record &);
+    }
+}
+
+std::ostream &operator<<(std::ostream &, const tests::Record &);
+\end{file}
+
+We have declared that the \cpp{Record} struct supports the operator \cpp{+=}, meaning that a record can be incremented by another record. This will be useful because we can separate our tests into several test suites --- one for each component --- which can each have its own record, meanwhile we can also keep a master record which accumulates all of the record data for each component's tests.
+
+We have also declared that output streams support the \cpp{<<} operator for \cpp{Record} objects. This will allow us to easily output them to stdout.
+
+We will define both of these methods in \path{src/tests/tests.cc}.
+
+\begin{file}{src/tests/tests.cc}{c++}{1}
+#include <iostream>
+#include "tests.hh"
+
+tests::Record &tests::Record::operator+=(const tests::Record &other)
+{
+    this->passed += other.passed;
+    this->total += other.total;
+    return *this;
+}
+
+std::ostream &operator<<(std::ostream &os, const tests::Record &record)
+{
+    return os
+           << "PASSED: "
+           << record.passed
+           << "/"
+           << record.total
+           << " "
+           << (record.passed == record.total ? "✅" : "❌" );
+}
+\end{file}
+
+We now want to go back to \path{tests.hh} and declare a namespace for the encoder's tests, and a method therein called \cpp{allTests}. This method will be defined in \path{encoder-tests.cc}.
+
+\begin{file}{src/tests/tests.hh}{c++}{15}
+    namespace encoder
+    {
+        void allTests(Record &);
+    }
+\end{file}
+
+If we had multiple components with tests, we would need to declare a new namespace and a new \cpp{allTests} method for each of them. This code is simply begging to be a preprocessor macro. You might expect that we would use a macro like this,
+
+\begin{file}{src/tests/tests.hh}{c++}{4}
+#define DECLARE_COMPONENT_NAMESPACE(component) \
+    namespace component                        \
+    {                                          \
+        void allTests(Record &);               \
+    }
+\end{file}
+
+at which point we might use the macro like this:
+
+\begin{file}{src/tests/tests.hh}{c++}{21}
+    DECLARE_COMPONENT_NAMESPACE(encoder)
+\end{file}
+
+However, it will be easier in the long run to instead create a macro like this:
+
+\begin{file}{src/tests/tests.hh}{c++}{4}
+#define FOR_ALL_COMPONENTS \
+    X(encoder)
+\end{file}
+
+Which we will use as follows:
+
+\begin{file}{src/tests/tests.hh}{c++}{18}
+#define X(name)                  \
+    namespace name               \
+    {                            \
+        void allTests(Record &); \
+    }
+
+    FOR_ALL_COMPONENTS
+
+#undef X
+\end{file}
+
+This is an incredibly helpful (though admittedly rather ugly) trick. The \cpp{FOR_ALL_COMPONENTS} macro just applies some other (as yet unknown) macro \cpp{X} to each component we want to test. When we add more components, we would simply adjust the \cpp{FOR_ALL_COMPONENTS} macro to something like this:
+
+\begin{file}{src/tests/tests.hh}{c++}{4}
+#define FOR_ALL_COMPONENTS  \
+    X(encoder)              \
+    X(decoder)              \
+    X(vlq)                  \
+    X(some_other_component) \
+\end{file}
+
+Then, when we want to run some code for every component, we define the macro \cpp{X} to be that code, use \cpp{FOR_ALL_COMPONENTS}, and then undefine \cpp{X}, as we have done above.
+
+This is useful because next we want to actually run all of the \cpp{allTests} methods for each component, and we can make use of this macro to do so succinctly.
+
+We will write this code in \path{tests.cc}.
+
+\begin{file}{src/tests/tests.cc}{c++}{22}
+int main()
+{
+
+    tests::Record record{0, 0};
+
+#define X(component) tests::component::allTests(record);
+    FOR_ALL_COMPONENTS
+#undef X
+
+    std::cout
+        << record
+        << std::endl;
+    return 0;
+}
+\end{file}
+
+Note how in this situation we are using the macro \cpp{X} to be one that calls the \cpp{allTests} method for a given component.
+
+At the moment we are using a single record to store the results from all of the component tests combined. Later we will change this to use a separate record for each component, and a single master record to accumulate them.
+
+We won't actually write any of the unit tests until we've finished developing the framework, but it would be helpful to have a placeholder one to let us test out our system. It has not escaped my notice that testing a testing framework is perhaps a rather tedious-sounding notion, but alas we must soldier on and take solace in the knowledge that we've taken the time to do things the right way.
+
+We will put a placeholder unit test in \path{src/tests/encoder-tests.cc}
+
+\begin{file}{src/tests/encoder-tests.cc}{c++}{1}
+#include "tests.hh"
+
+static bool placeholderTest(void)
+{
+	return true;
+}
+
+void tests::encoder::allTests(tests::Record &record)
+{
+	record.total++;
+	if (placeholderTest()) {
+		record.passed++;
+	}
+
+	return;
+}
+\end{file}
+
+As you can see, all that this test does is return a value of \cpp{true}. (Hooray! we passed.)
+
+The \cpp{allTests} method increments the number of recorded tests, and if the placeholder test passes, it also increments the recorded number of passed tests.
+
+To build the tester we must add a target to the Makefile.
+
+\begin{file}{Makefile}{make}{4}
+tests: dist-dir
+	$(CC) $(FLAGS) -o dist/tests src/tests/encoder-tests.cc \
+	                             src/tests/tests.cc
+\end{file}
+
+We can now build and run our tester with the following commands:
+
+\begin{stdout}
+make tests
+./dist/tests
+\end{stdout}
+
+To which we are pleasantly greeted with the output:
+
+\begin{stdout}
+PASSED: 1/1 ✅
+\end{stdout}
+
+If we were to change our unit test to return \cpp{false} instead of \cpp{true}, we would instead see:
+
+\begin{stdout}
+PASSED: 0/1 ❌
+\end{stdout}
+
+As you can see, this would not be a particularly helpful output if we had more than one test. We would want to see exactly which tests failed, and for which components. To achieve this, we will create a method \cpp{tests::perform} which takes in a name for the test, a function reference to the test, and a record reference to modify. We will declare this method in \path{tests.hh}.
+
+First we must include \cpp{functional},
+
+\begin{file}{src/tests/tests.hh}{c++}{3}
+#include <functional>
+\end{file}
+
+and then we can declare the method.
+
+\begin{file}{src/tests/tests.hh}{c++}{20}
+    void perform(const std::string &,
+                 const std::function<bool()> &,
+                 Record &);
+\end{file}
+
+We will define this method in \path{tests.cc}.
+
+\begin{file}{src/tests/tests.cc}{c++}{4}
+void tests::perform(const std::string &name,
+                    const std::function<bool()> &testToPerform,
+                    tests::Record &record)
+{
+    std::cout << "  " << name << ": ";
+    bool passed = testToPerform();
+    std::cout << (passed ? "✅" : "❌") << std::endl;
+    record.passed += passed;
+    record.total++;
+}
+\end{file}
+
+We can now go back to \path{encoder-tests.cc} and modify it to use this method.
+
+\begin{file}{src/tests/encoder-tests.cc}{c++}{8}
+void tests::encoder::allTests(tests::Record &record)
+{
+    tests::perform("placeholderTest", placeholderTest, record);
+    
+    return;
+}
+\end{file}
+
+While this is much simpler, there is still some redundancy in the fact that we have to write the test name twice, once as a string to use as the test name, and once again to get the function reference. We can solve this minor inconvenience using another preprocessor macro, which does this for us. Since all of the components' tests will want to use this macro, we will put it in \path{tests.hh}.
+
+\begin{file}{src/tests/tests.hh}{c++}{5}
+#define RUN_TEST(testFunc, record) \
+    tests::perform(#testFunc, (testFunc), (record))
+\end{file}
+
+Here we are using \cpp{#testFunc} to get the macro parameter \cpp{testFunc} as a string, saving us the need to write it out twice. We can now simplify \cpp{allTests}.
+
+\begin{file}{src/tests/encoder-tests.cc}{c++}{8}
+void tests::encoder::allTests(tests::Record &record)
+{
+    RUN_TEST(placeholderTest, record);
+    
+    return;
+}
+\end{file}
+
+If we rebuild and run our tester, we will see the following output:
+
+\begin{stdout}
+ placeholderTest: ✅
+PASSED: 1/1 ✅
+\end{stdout}
+
+This is more helpful as it tells us exactly which tests passed and which tests failed, as well as a total.
+
+The final feature to add to our tester is some output displaying which components the tests are for, and how many of the tests passed for that component. Similarly to the \cpp{tests::perform} method, we can create a new wrapper method called \cpp{tests::performComponentTests} which accepts as parameters a string to use as the name of the component, a function reference to that component's \cpp{allTests} method, and a record reference to update.
+
+We will declare it in \path{tests.hh}.
+
+\begin{file}{src/tests/tests.hh}{c++}{25}
+    void performComponentTests(const std::string &,
+                               const std::function<void(Record &)> &,
+                               Record &);
+\end{file}
+
+We will then define it in \path{tests.cc}.
+
+\begin{file}{src/tests/tests.cc}{c++}{15}
+void tests::performComponentTests(const std::string &name,
+                                  const std::function<void(tests::Record &)> &testsToPerform,
+                                  tests::Record &record)
+{
+    std::cout << "Running " << name << " tests:" << std::endl;
+    tests::Record innerRecord{0, 0};
+    testsToPerform(innerRecord);
+    std::cout << innerRecord << std::endl
+              << std::endl;
+    record += innerRecord;
+}
+\end{file}
+
+Notice how here we are constructing a new instance of \cpp{Record} just for this individual component, which we are outputting once all of that component's tests have been run. Then, we increment the master record by this new one (which is why we needed to implement \cpp{tests::Record::operator+=}).
+
+We will modify our main method to use this wrapper.
+
+\begin{file}{src/tests/tests.cc}{c++}{45}
+int main()
+{
+
+    tests::Record record{0, 0};
+
+#define X(component)                                         \
+    tests::performComponentTests(#component,                 \
+                                 tests::component::allTests, \
+                                 record);
+    FOR_ALL_COMPONENTS
+#undef X
+
+    std::cout
+        << "OVERALL "
+        << record
+        << std::endl;
+    return 0;
+}
+\end{file}
+
+After rebuilding and running the tester, we will see the following output:
+
+\begin{stdout}
+Running encoder tests:
+  placeholderTest: ✅
+PASSED: 1/1 ✅
+
+OVERALL PASSED: 1/1 ✅
+\end{stdout}
+
+With this, the unit testing framework is complete. While it may seem over-engineered and bulky, it is so versatile and extendable that it will make a world of difference when it comes to writing a great number of tests across several different components.

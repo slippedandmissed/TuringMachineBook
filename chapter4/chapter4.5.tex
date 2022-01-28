@@ -1,0 +1,319 @@
+\section{Recovering the State Strings}
+
+At the moment the TMVM is a fully functioning Turing Machine simulator. That is to say, any program which can be run on a Turing machine can be encoded into our machine code format and then executed on the TMVM. However, there are still some features left to implement.
+
+One of these features (which will be particularly helpful when writing the pseudo-assembler) is the ability to convert our state names from integers back into the strings we used when giving our program to the encoder.
+
+Of course, the simulator doesn't have access to this information, as it was discarded after the encoding process. Nonetheless, we can add it back in in the form of metadata.
+
+As a recap, the machine code of a Turing machine program consists of the magic bytes, the number of rules, and then a chunk of machine code for each rule. We can add some additional data after this to encode the mapping from state indices to state strings.
+
+This will be optional, and the program will run as intended even if no metadata is present.
+
+Since there will eventually be multiple types of metadata, we can't simply output the state strings directly after the machine code for the rules. Instead, we will first output a single byte representing what type of metadata is about to follow. Of course, we could instead use a VLQ, but 256 different types of metadata will be more than enough for our purposes.
+
+We will create a new header file called \path{src/metadata.hh} which will contain an enum mapping metadata types to chars.
+
+\begin{file}{src/metadata.hh}{c++}{1}
+#pragma once
+
+enum MetadataType : char
+{
+    STATE_STRINGS = 0
+};
+\end{file}
+
+For now this enum only has one value, but we denote the underlying type as \cpp{char} to remind us to never exceed the limit of 256 types of metadata.
+
+In the encoder we can add a new method to output the state string metadata. We will declare this method in the \path{src/encoder.hh} header.
+
+\begin{file}{src/encoder.hh}{c++}{26}
+    void addStateStrings(std::ostream &);
+\end{file}
+
+This method will be optionally called after the \cpp{Encoder::output} method, and will output the byte representing the metadata type (in this case, a null byte) followed by all of the state strings in order of state index (i.e., the string for state \statename{0} followed by the string for state \statename{1}, etc.).
+
+To achieve this, the encoder must be able to get the state string for a given index. Unfortunately, the \cpp{m_stateNames} hash table only maps in the other direction. To solve this, we will add in another data structure, \cpp{m_indexToState}, which will be a vector containing all of the state names in the correct order.
+
+\begin{file}{src/encoder.hh}{c++}{12}
+    std::vector<std::string> m_indexToState;
+\end{file}
+
+In \path{encoder.cc}, we can modify the constructor and the \cpp{getStateIndex} methods so that they keep this vector up-to-date.
+
+\begin{file}{src/encoder.cc}{c++}{5}
+Encoder::Encoder(void)
+{
+    m_stateNames["start"] = 0;
+    m_indexToState.push_back("start");
+    m_stateCount = 1;
+}
+
+state_t Encoder::getStateIndex(const std::string &name)
+{
+    auto search = m_stateNames.find(name);
+    if (search == m_stateNames.end())
+    {
+        state_t index = m_stateCount++;
+        m_stateNames[name] = index;
+        m_indexToState.push_back(name);
+        return index;
+    }
+    return search->second;
+}
+\end{file}
+
+As you can see, whenever a new state index is allocated, the associated name is added to \cpp{m_indexToState}.
+
+Now we can implement the \cpp{addStateStrings} method, which is fairly simple.
+
+\begin{file}{src/encoder.cc}{c++}{4}
+#include "metadata.hh"
+\end{file}
+
+\begin{file}{src/encoder.cc}{c++}{4}
+void Encoder::addStateStrings(std::ostream &os)
+{
+    os << (char) MetadataType::STATE_STRINGS;
+    for (auto state : m_indexToState)
+    {
+        os << state << '\0';
+    }
+}
+\end{file}
+
+Note that we output a null byte after every state string. This is so that when we decode this program, the decoder will be able to determine where one state string ends and the next begins. It is unrelated to the fact that a null byte is also used to indicate that the following metadata encodes state strings.
+
+We can confirm that this is working as expected by adding a unit test for the encoder. We will call it \cpp{simpleTestWithStateStrings} and it will be very similar to \cpp{simpleTest}, except that we invoke the \cpp{Encoder::addStateStrings} method, and the expected output includes a null byte followed by the state strings at the end.
+
+\begin{file}{src/tests/encoder-tests.cc}{c++}{49}
+static bool simpleTestWithStateStrings(void)
+{
+    Encoder encoder;
+    encoder.addRule("start", "1", "0", Direction::RIGHT, "go_to_end");
+    encoder.addRule("start", "0", "1", Direction::LEFT, "start");
+    encoder.addRule("start", "", "", Direction::RIGHT, "done");
+    encoder.addRule("done", "1", "", Direction::RIGHT, "done");
+    encoder.addRule("go_to_end", "0", "0", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "1", "1", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "A", "A", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "", "A", Direction::LEFT, "start");
+    encoder.addRule("start", "A", "A", Direction::LEFT, "start");
+
+    std::ostringstream os;
+
+    encoder.output(os);
+    encoder.addStateStrings(os);
+
+    auto result = stringToHex(os.str());
+
+    std::string expected =
+        "545552494E4709003100300001010030"
+        "00310000000000000102023100000102"
+        "01300030000101013100310001010141"
+        "00410001010100410000000041004100"
+        "000000737461727400676F5F746F5F65"
+        "6E6400646F6E6500";
+
+    return result == expected;
+}
+
+void tests::encoder::allTests(tests::Record &record)
+{
+    RUN_TEST(simpleTest, record);
+    RUN_TEST(simpleTestWithStateStrings, record);
+
+    return;
+}
+\end{file}
+
+Now that the encoder can handle state strings, we will likewise update the decoder.
+
+We will give the decoder a private method called \cpp{parseStateStrings}, which will accept as parameters references to both the input stream and the \cpp{Program} object currently being constructed.
+
+\begin{file}{src/decoder.hh}{c++}{8}
+private:
+    void parseStateStrings(std::istream &, Program &);
+\end{file}
+
+This method is private because we do not need to invoke it manually when invoking the decoder, but it will instead be called automatically when the \cpp{decode} method detects that the state name metadata is present. In fact, we will create a separate such private method for each type of metadata we will implement.
+
+In this spirit, we will modify the \cpp{decode} method to do just that. Once we've finished decoding each of the rules, the file index will either be just before the end of the file (i.e., there is no metadata) or will be just before some other byte (i.e., there is metadata). In the latter case, the aim is to parse this metadata and then repeat until there is no metadata remaining. We are assuming here that there may be multiple types of metadata present in any order.
+
+We can achieve this with the following loop before the return statement:
+
+\begin{file}{src/decoder.cc}{c++}{4}
+#include "metadata.hh"
+\end{file}
+
+\begin{file}{src/decoder.cc}{c++}{38}
+    char c = is.get();
+    while (!is.eof())
+    {
+        switch (static_cast<MetadataType>(c))
+        {
+        case STATE_STRINGS:
+            parseStateStrings(is, program);
+            break;
+        default:
+            // Unknown metadata type
+            break;
+        }
+        c = is.get();
+    }
+\end{file}
+
+This is building the framework which will allow the decoder to handle many different types of metadata by simply adding more cases to the switch statement.
+
+In the case that metadata is present, the \cpp{parseStateStrings} method is called. We need to decide where it will store all of the state strings, and the natural choice is to store it in the \cpp{Program} struct.
+
+We will add two fields to this struct. The first is a boolean flag indicating whether or not state strings have been decoded for this program. The second will be a vector containing them if they do exist. If they don't, this vector will remain empty.
+
+\begin{file}{src/program.hh}{c++}{10}
+    bool hasStateStrings{false};
+    std::vector<std::string> stateStrings;
+\end{file}
+
+Now, we can go back to \path{decoder.cc} and implement the \cpp{parseStateStrings} method.
+
+\begin{file}{src/decoder.cc}{c++}{56}
+void Decoder::parseStateStrings(std::istream &is, Program &program)
+{
+    program.hasStateStrings = true;
+    program.stateStrings.resize(program.numStates);
+
+    std::string stateStringBuffer;
+    for (state_t i = 0; i < program.numStates; i++)
+    {
+        std::getline(is, stateStringBuffer, '\0');
+        program.stateStrings[i] = stateStringBuffer;
+    }
+}
+\end{file}
+
+This method simply sets the \cpp{hasStateStrings} flag for the program, resizes the \cpp{stateStrings} vector to the number of states (which is already known from earlier stages of the decoding process), and then reads that number of null-terminated strings from the input stream, storing them in the \cpp{stateStrings} vector. Subsequently, the value stored at \cpp{program.stateStrings[i]} will be the state string for state \statename{i}.
+
+We will add a unit test for the decoder, but first we must modify the existing one, \cpp{simpleTest} in \path{src/tests/decoder-tests.cc}. This test should now also ensure that the \cpp{hasStateStrings} flag is unset for the program it decodes, because the input machine code does not contain any metadata.
+
+\begin{file}{src/tests/decoder-tests.cc}{c++}{23}
+    if (program->hasStateStrings)
+        return false;
+\end{file}
+
+Now we can add a new test, \cpp{simpleTestWithStateStrings}, which is similar to \cpp{simpleTest} except that the input machine code will include the state name metadata, we will ensure that the \cpp{program.hasStateStrings} flag is set rather than unset, and we will check whether the contents of the \cpp{program.stateStrings} vector are the state strings we expect.
+
+\begin{file}{src/test/decoder-tests.cc}{c++}{44}
+static bool simpleTestWithStateStrings()
+{
+    std::stringstream is(std::string(
+        "\x54\x55\x52\x49\x4E\x47\x09\x00\x31\x00\x30\x00\x01\x01\x00\x30"
+        "\x00\x31\x00\x00\x00\x00\x00\x00\x01\x02\x02\x31\x00\x00\x01\x02"
+        "\x01\x30\x00\x30\x00\x01\x01\x01\x31\x00\x31\x00\x01\x01\x01\x41"
+        "\x00\x41\x00\x01\x01\x01\x00\x41\x00\x00\x00\x00\x41\x00\x41\x00"
+        "\x00\x00\x00\x73\x74\x61\x72\x74\x00\x67\x6F\x5F\x74\x6F\x5F\x65"
+        "\x6E\x64\x00\x64\x6F\x6E\x65\x00",
+        88));
+
+    Decoder decoder;
+    auto program = decoder.decode(is);
+
+    if (!program)
+        return false;
+    if (program->rules.size() != 9)
+        return false;
+    if (program->numStates != 3)
+        return false;
+    if (!(program->hasStateStrings))
+        return false;
+    if (program->stateStrings != std::vector<std::string>({"start", "go_to_end", "done"}))
+        return false;
+    if (!(program->rules[0] == Rule{0, "1", "0", Direction::RIGHT, 1}))
+        return false;
+    if (!(program->rules[1] == Rule{0, "0", "1", Direction::LEFT, 0}))
+        return false;
+    if (!(program->rules[2] == Rule{0, "", "", Direction::RIGHT, 2}))
+        return false;
+    if (!(program->rules[3] == Rule{2, "1", "", Direction::RIGHT, 2}))
+        return false;
+    if (!(program->rules[4] == Rule{1, "0", "0", Direction::RIGHT, 1}))
+        return false;
+    if (!(program->rules[5] == Rule{1, "1", "1", Direction::RIGHT, 1}))
+        return false;
+    if (!(program->rules[6] == Rule{1, "A", "A", Direction::RIGHT, 1}))
+        return false;
+    if (!(program->rules[7] == Rule{1, "", "A", Direction::LEFT, 0}))
+        return false;
+    return program->rules[8] == Rule{0, "A", "A", Direction::LEFT, 0};
+}
+
+void tests::decoder::allTests(Record &record)
+{
+    RUN_TEST(simpleTest, record);
+    RUN_TEST(simpleTestWithStateStrings, record);
+    return;
+}
+\end{file}
+
+The encoder and decoder now support state string metadata, and the state strings are stored in the \cpp{Program} object. We can use this in the simulator to make our lives easier when it comes to debugging. For example, in the \cpp{Simulator} output method, normally the current state index is printed. We can modify this method to use the state string if it exists.
+
+\begin{file}{src/simulator.cc}{c++}{36}
+std::ostream &operator<<(std::ostream &os, const Simulator &sim)
+{
+    os << "State: ";
+    if (sim.m_program->hasStateStrings)
+        os << sim.m_program->stateStrings[sim.m_state];
+    else
+        os << sim.m_state;
+    os << std::endl;
+    return os << sim.m_tape;
+}
+\end{file}
+
+Now, when we run our tests, we should see that they all pass:
+
+\begin{stdout}
+Running encoder tests:
+  simpleTest: ✅
+  simpleTestWithStateStrings: ✅
+PASSED: 2/2 ✅
+
+Running decoder tests:
+  simpleTest: ✅
+  simpleTestWithStateStrings: ✅
+PASSED: 2/2 ✅
+
+Running vlq tests:
+  is0EncodedCorrectly: ✅
+  is50EncodedCorrectly: ✅
+  is123456789EncodedCorrectly: ✅
+  is0DecodedCorrectly: ✅
+  is50DecodedCorrectly: ✅
+  is123456789DecodedCorrectly: ✅
+  is123456789DecodedCorrectlyWithMoreBytes: ✅
+PASSED: 7/7 ✅
+
+Running simulator tests:
+  emptyStringOfAsTest: ✅
+  stringOf0AsTest: ✅
+  stringOf1ATest: ✅
+  stringOf5AsTest: ✅
+PASSED: 4/4 ✅
+
+OVERALL PASSED: 15/15 ✅
+\end{stdout}
+
+And when we save our machine code with state string metadata included into a file, say \path{programs/string_of_As_with_state_strings.tur}, and run it with the TMVM,
+
+\begin{stdout}
+make
+./dist/tmvm ./programs/string_of_As_with_state_strings.tur 1 0 1
+\end{stdout}
+
+we see that the state is printed as its string, \statename{done}, rather than its index, \statename{2}.
+
+\begin{stdout}
+State: done
+«_____»________________
+«| A |» A | A | A | A |
+«‾‾↑‾‾»‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+\end{stdout}

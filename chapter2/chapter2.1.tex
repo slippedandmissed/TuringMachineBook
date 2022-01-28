@@ -1,0 +1,50 @@
+\section{Definition}
+A Turing machine is a theoretical machine first described by Alan Turing in 1936. This machine consists of a tape (a long line of adjacent cells) extending infinitely far in both directions. Each cell contains a symbol. The machine has a read/write head positioned over one of the cells, which is capable of determining which symbol is written in that cell, and is also able to replace it with a different symbol. The machine also has some internal state which can change over time.
+
+This machine follows a particular finite set of so-called \textit{transition rules}. Each rule has the format:
+
+\begin{quote}
+    If the machine is in state \statename{X}, and the symbol under the read/write head is symbol \symb{A}, then replace it with symbol \symb{B}, move the read/write head exactly one cell to the left/right, and then set the state to state \statename{Y}.
+\end{quote}
+
+which can be expressed more concisely as:
+
+\begin{quote}
+    $\Delta(X,A) = (B,\shortleftarrow,Y)$
+\end{quote}
+or
+\begin{quote}
+    $\Delta(X,A) = (B,\shortrightarrow,Y)$
+\end{quote}
+depending on whether the read/write head should move to the left or right, respectively.
+
+Consequently, this machine can carry out computations. The set of transition rules are like a program, and the initial symbols on the tape are like the input to that program. The machine starts in some pre-defined state, repeatedly applies whichever rule is appropriate, and once it reaches a situation in which none of its rules apply, it terminates leaving whichever symbols remain on the tape to serve as the output.
+
+The incredible thing about this hypothetical machine is that it can actually compute any computable algorithm. If an algorithm can run on a modern computer, it can be simulated with a finite set of Turing machine transition rules.
+
+It is with this theorem that Turing defined the set of all computable programs as the set of programs which can be executed on a Turing machine. As such, if some machine (or say, programming language) can be used to simulate a Turing machine, it then follows that it can also compute any computable algorithm.
+
+This is the main reason why we can be confident that we can compile high-level code into Turing machine transition rules --- any computable algorithm can be run on a Turing machine.
+
+In order to clarify our goals, we can define what we mean by a Turing machine program mathematically.
+
+\begin{align*}
+    &S:=\{\textrm{possible states}\} \textrm{ such that }|S|\textrm{ is finite} \\
+    &A:=\{\textrm{possible symbols}\} \textrm{ such that }|A|\textrm{ is finite} \\
+    &D:=\{\shortleftarrow, \shortrightarrow\}\\
+    &s_0 \in S\\
+    \\
+    &\Delta: (S\times A) \pfun (A \times D \times S)
+\end{align*}
+
+Here, $S$ is the finite set of possible states that the Turing machine can be in. $A$ (short for alphabet) is the finite set of symbols which can be written on a cell in the tape. The Turing machine initially starts in state $s_0$.
+
+$\Delta$, the set of rules, is a partial function between the sets shown above. The cell under the read/write head, the position of the read/write head, and the state of the machine are all updated repeatedly according to this function, until no further rule applies.
+
+Note that we have not said anything about what the individual elements of $S$ and $A$ might be. In fact, these elements will depend on the program we are running (i.e., some programs might require more states than others, or a different alphabet. Regardless, both of these sets will always be finite).
+
+We will have a lot of flexibility when implementing the Turing machine simulator. For example, our states could be represented by natural numbers (state 0, state 1, etc.) or by strings (\cpp{"start"}, \cpp{"ready"}, etc.). We will switch between these two representations when it becomes helpful to do so.
+
+Similarly, we haven't specified what type of symbols we are using. When we actually come to implement the simulator, we will use strings to represent the symbols (most will only be a single character, but it will become very helpful to allow for multi-character symbols).
+
+I should note that some may argue that $A$ should only have exactly two elements (e.g., 0 and 1). This restriction doesn't really impact the computing power and would only serve to make the journey ahead much less enjoyable, so we will choose to ignore it.

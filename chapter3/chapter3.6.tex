@@ -1,0 +1,189 @@
+\section{Unit Tests for the Decoder}
+
+We will now write some unit tests for the decoding logic we've just implemented.
+
+Let's start with \cpp{vlq::readFromStream}. We will use the same test cases we used for \cpp{vlq::writeToStream}. Namely, 0, 50, and 123456789.
+
+These tests are quite straight forward, and we will write them in \path{src/tests/vlq-tests.cc}.
+
+\begin{file}{src/tests/vlq-tests.cc}{c++}{26}
+static bool is0DecodedCorrectly(void)
+{
+    std::stringstream is(std::string("\0", 1));
+    auto result = vlq::readFromStream(is);
+    return result == 0;
+}
+
+static bool is50DecodedCorrectly(void)
+{
+    std::stringstream is("\x32");
+    auto result = vlq::readFromStream(is);
+    return result == 50;
+}
+
+static bool is123456789DecodedCorrectly(void)
+{
+    std::stringstream is("\xBA\xEF\x9A\x15");
+    auto result = vlq::readFromStream(is);
+    return result == 123456789;
+}
+\end{file}
+
+For decoding, we also want to test one more case. If the stream contains more than just the VLQ we want to decode, we want to make sure that the VLQ decoder stops where it is supposed to, and ignores all further bytes. For this we can use the following descriptive yet clunkily-named test:
+
+\begin{file}{src/tests/vlq-tests.cc}{c++}{47}
+static bool is123456789DecodedCorrectlyWithMoreBytes(void)
+{
+    std::stringstream is("\xBA\xEF\x9A\x15\41\41\41\41");
+    auto result = vlq::readFromStream(is);
+    return result == 123456789;
+}
+\end{file}
+
+This test is the same as \cpp{is123456789DecodedCorrectly} but where the input string has several extra bytes at the end, which will hopefully be ignored.
+
+We must now modify the \cpp{allTests} method to run all of these new tests.
+
+\begin{file}{src/tests/vlq-tests.cc}{c++}{54}
+void tests::vlq::allTests(tests::Record &record)
+{
+
+    RUN_TEST(is0EncodedCorrectly, record);
+    RUN_TEST(is50EncodedCorrectly, record);
+    RUN_TEST(is123456789EncodedCorrectly, record);
+    RUN_TEST(is0DecodedCorrectly, record);
+    RUN_TEST(is50DecodedCorrectly, record);
+    RUN_TEST(is123456789DecodedCorrectly, record);
+    RUN_TEST(is123456789DecodedCorrectlyWithMoreBytes, record);
+
+    return;
+}
+\end{file}
+
+Now we must test the decoder itself. We will create a new file called \path{src/tests/decoder-tests.cc}.
+
+\begin{file}{src/tests/decoder-tests.cc}{c++}{1}
+#include <sstream>
+#include "tests.hh"
+#include "../decoder.hh"
+
+void tests::decoder::allTests(Record &record)
+{
+    return;
+}
+\end{file}
+
+We will create a unit test named \cpp{simpleTest} which is similar to that of the encoder. It too will use the example from page \pageref{program:simpleTest}, passing in the machine code of the program and then checking whether the decoded rules match what we'd expect.
+
+\begin{file}{src/tests/decoder-tests.cc}{c++}{5}
+static bool simpleTest()
+{
+    std::stringstream is(std::string(
+        "\x54\x55\x52\x49\x4E\x47\x09\x00\x31\x00\x30\x00\x01\x01\x00\x30"
+        "\x00\x31\x00\x00\x00\x00\x00\x00\x01\x02\x02\x31\x00\x00\x01\x02"
+        "\x01\x30\x00\x30\x00\x01\x01\x01\x31\x00\x31\x00\x01\x01\x01\x41"
+        "\x00\x41\x00\x01\x01\x01\x00\x41\x00\x00\x00\x00\x41\x00\x41\x00"
+        "\x00\x00", 66));
+
+    Decoder decoder;
+    auto program = decoder.decode(is);
+    if (!program)
+        return false;
+    if (program->rules.size() != 9)
+        return false;
+    if (!(program->rules[0] == Rule{0, "1", "0", Direction::RIGHT, 1}))
+        return false;
+    if (!(program->rules[1] == Rule{0, "0", "1", Direction::LEFT, 0}))
+        return false;
+    if (!(program->rules[2] == Rule{0, "", "", Direction::RIGHT, 2}))
+        return false;
+    if (!(program->rules[3] == Rule{2, "1", "", Direction::RIGHT, 2}))
+        return false;
+    if (!(program->rules[4] == Rule{1, "0", "0", Direction::RIGHT, 1}))
+        return false;
+    if (!(program->rules[5] == Rule{1, "1", "1", Direction::RIGHT, 1}))
+        return false;
+    if (!(program->rules[6] == Rule{1, "A", "A", Direction::RIGHT, 1}))
+        return false;
+    if (!(program->rules[7] == Rule{1, "", "A", Direction::LEFT, 0}))
+        return false;
+    return program->rules[8] == Rule{0, "A", "A", Direction::LEFT, 0};
+}
+\end{file}
+
+There is one piece missing from this test. We are comparing each rule to the expected output using the \cpp{==} operator, which we have not implemented on the \cpp{Rule} struct. Luckily, this is not too difficult to do, and we will do so in \path{src/rule.hh}.
+
+\begin{file}{src/rule.hh}{c++}{20}
+    inline bool operator==(const Rule &o)
+    {
+        if (startState != o.startState)
+            return false;
+        if (matchSymbol != o.matchSymbol)
+            return false;
+        if (replaceSymbol != o.replaceSymbol)
+            return false;
+        if (direction != o.direction)
+            return false;
+        return endState == o.endState;
+    }
+\end{file}
+
+Now we can go back to \path{decoder-tests.cc} and modify its \cpp{allTests} method to run this test.
+
+\begin{file}{src/tests/decoder-tests.cc}{c++}{39}
+void tests::decoder::allTests(Record &record)
+{
+    RUN_TEST(simpleTest, record);
+    return;
+}
+\end{file}
+
+Next, we must extend the \cpp{FOR_ALL_COMPONENTS} macro in \path{src/tests/tests.hh} to include the \cpp{decoder} component.
+
+\begin{file}{src/tests/tests.hh}{c++}{8}
+#define FOR_ALL_COMPONENTS \
+    X(encoder)             \
+    X(decoder)             \
+    X(vlq)
+\end{file}
+
+Finally, we can edit the \code{tests} target in the Makefile to depend on the \code{decoder} target, and to also link with both the \path{decoder.o} object file, and the \path{decoder-tests.cc} source file.
+
+\begin{file}{Makefile}{make}{4}
+tests: vlq encoder decoder
+	$(CC) $(FLAGS) -o dist/tests dist/encoder.o \
+	                             dist/decoder.o \
+	                             dist/vlq.o \
+	                             src/tests/vlq-tests.cc \
+	                             src/tests/encoder-tests.cc \
+	                             src/tests/decoder-tests.cc \
+	                             src/tests/tests.cc
+\end{file}
+
+Now if we build and run our tests, we will see the following glorious output:
+
+\begin{stdout}
+Running encoder tests:
+  simpleTest: ✅
+PASSED: 1/1 ✅
+
+Running decoder tests:
+  simpleTest: ✅
+PASSED: 1/1 ✅
+
+Running vlq tests:
+  is0EncodedCorrectly: ✅
+  is50EncodedCorrectly: ✅
+  is123456789EncodedCorrectly: ✅
+  is0DecodedCorrectly: ✅
+  is50DecodedCorrectly: ✅
+  is123456789DecodedCorrectly: ✅
+  is123456789DecodedCorrectlyWithMoreBytes: ✅
+PASSED: 7/7 ✅
+
+OVERALL PASSED: 9/9 ✅
+\end{stdout}
+
+What we now have is a method of encoding our rules as a binary file, and then reading in the binary file to reconstruct our rules. We will eventually use the former to create a tool which compiles a pseudo-assembly language into Turing machine code, but first we will use the latter to create a Turing machine simulator.
+
+Our encoder and decoder are far from finished, and we will come back to extend them as and when we need to, but they are at a point now where they are functional enough for us to move on to the next steps of the project.

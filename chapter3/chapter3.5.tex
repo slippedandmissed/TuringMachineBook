@@ -1,0 +1,119 @@
+\section{Creating a Decoder}
+
+Now that we've got a working encoder which lets us transform our ruleset into machine code, we can start creating a decoder which allows us to turn machine code back into a ruleset.
+
+One method which we will of course need is \cpp{vlq::readFromStream} which we delcared in a previous section but have not yet implemented. This method is supposed to read a VLQ-encoded value from an input stream and return it as a \cpp{state_t}.
+
+We will define this method in \path{src/vlq.cc}.
+
+\begin{file}{src/vlq.cc}{c++}{36}
+state_t vlq::readFromStream(std::istream &is)
+{
+    state_t value = 0;
+    bool moreOctets;
+    do
+    {
+        unsigned char octet = is.get();
+        moreOctets = (octet & 0x80) >> 7;
+        value <<= 7;
+        value |= octet & 0x7F;
+    } while (moreOctets);
+    return value;
+}
+\end{file}
+
+It starts off with a value of zero, and then reads an octet from the input stream. It appends the least significant 7 bits of this octet to the running total, and repeats until it finds an octet whose most significant bit is a 0, indicating that the current octet is the last one for this value.
+
+We will also need a data structure to contain our decoded Turing machine program once we decode it. For the moment, this could simply be a \cpp{std::vector<Rule>} object, but when we add program metadata to the machine code format, this structure will need to hold some additional information. For now, we will describe a simple wrapper struct in a new header, \path{src/program.hh}.
+
+\begin{file}{src/program.hh}{c++}{1}
+#pragma once
+#include <vector>
+#include "rule.hh"
+
+struct Program
+{
+    std::vector<Rule> rules;
+};
+\end{file}
+
+Using these tools, we will be able to implement the decoder. We will do so in a new file, \path{src/decoder.cc}, with a corresponding header file \path{src/decoder.hh}.
+
+Like for the encoder, the decoder logic will be contained within a \cpp{Decoder} class. However, since we no longer need to worry (for the moment) about translating between string states and integer states, this class will be much simpler than \cpp{Encoder}. It will have a single method, \cpp{decode}, which takes in an input stream and returns a pointer to one of our \cpp{Program} objects.
+
+\begin{file}{src/decoder.hh}{c++}{1}
+#pragma once
+#include <memory>
+#include <istream>
+#include "program.hh"
+
+class Decoder
+{
+public:
+    std::unique_ptr<Program> decode(std::istream &);
+};
+\end{file}
+
+The reason this method returns a \cpp{Program} pointer rather than simply a \cpp{Program} is so that we can return a \cpp{nullptr} if the decoding fails.
+
+We can define this method in \path{decoder.cc}. The first thing we want to do is check that the 6 magic bytes \cpp{"TURING"} appear as the first 6 bytes of the stream.
+
+\begin{file}{src/decoder.cc}{c++}{1}
+#include "decoder.hh"
+#include "vlq.hh"
+
+std::unique_ptr<Program> Decoder::decode(std::istream &is)
+{
+    std::string magicBytes(6, '\0');
+    is.readsome(&magicBytes[0], 6);
+
+    if (magicBytes != "TURING")
+    {
+        return nullptr;
+    }
+\end{file}
+
+Next we want to initialise a \cpp{Program} object to contain our decoded data. We can use \cpp{vlq::readFromStream} to read the value encoding the number of rules in the ruleset. We'll use this value to set the size of the program's \cpp{rules} vector.
+
+\begin{file}{src/decoder.cc}{c++}{13}
+    Program program;
+
+    state_t numRules = vlq::readFromStream(is);
+    program.rules.resize(numRules);
+\end{file}
+
+Now, we can iterate over each rule and read its data from the input stream, storing it in the appropriate \cpp{Rule} object in the \cpp{rules} vector.
+
+\begin{file}{src/decoder.cc}{c++}{18}
+    for (state_t i = 0; i < numRules; i++)
+    {
+        program.rules[i].startState = vlq::readFromStream(is);
+
+        std::getline(is, program.rules[i].matchSymbol, '\0');
+        std::getline(is, program.rules[i].replaceSymbol, '\0');
+
+        program.rules[i].direction = static_cast<Direction>(is.get());
+
+        program.rules[i].endState = vlq::readFromStream(is);
+    }
+\end{file}
+
+Finally, we return a pointer to the \cpp{Program} object we've created.
+
+\begin{file}{src/decoder.cc}{c++}{30}
+    return std::make_unique<Program>(program);
+}
+\end{file}
+
+Note that the only error-checking that we are doing is for the magic bytes. We are not checking that we have actually managed to decode the expected number of rules, whether \cpp{vlq::readFromStream} fails due to reaching the end of the stream without finding a terminating octet, or indeed any other way in which this decoder could fail with bad input.
+
+However, this is going to be sufficient for our purposes. The magic byte check will tell us whether we have, for example, passed the decoder a file which isn't even a Turing machine code file. Otherwise, we will assume that any machine code file that we pass to the decoder will be correctly formed.
+
+If you feel so inclined, I encourage you to modify this decoder to be more informative in the case of an error, perhaps even displaying some human-readable error messages.
+
+To be able to compile the decoder, we must add a target to our Makefile.
+
+\begin{file}{Makefile}{make}{15}
+decoder: dist-dir
+	$(CC) $(CFLAGS) -o dist/decoder.o -c src/decoder.cc
+\end{file}

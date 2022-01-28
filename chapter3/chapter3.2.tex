@@ -1,0 +1,279 @@
+\section{Creating an Encoder}
+
+Finally, it's time to write some code! As previously mentioned, this we will be using C++14 to create a tool which allows us to specify our program using string states, and will output machine code. We will create a project directory and inside of it we will have a subdirectory named \path{src}, and a Makefile. Inside the \path{src} directory we will create two files: \path{encoder.cc}, and \path{encoder.hh}. The project directory should look like:
+
+\structure{%
+.1 \textit{[Project Directory]}.
+.2 src/.
+.3 encoder.cc.
+.3 encoder.hh.
+.2 Makefile.
+}
+
+We will also want a \path{dist} directory in the project, but we can let the Makefile handle this. For now, our Makefile will look like  this:
+
+\begin{file}{Makefile}{make}{1}
+CC = g++
+CFLAGS = -std=c++14 -g -Wall
+
+encoder: dist-dir
+	$(CC) $(CFLAGS) -o dist/encoder.o -c src/encoder.cc
+
+dist-dir:
+	mkdir -p dist
+
+clean:
+	rm -rf dist
+\end{file}
+
+As you can see, we are using the g++ compiler for our encoder. The \code{clean} target will delete the entire \path{dist} directory, and the \code{dist-dir} target will create it if it doesn't already exist. That way we can say that the \code{encoder} target depends on the \code{dist-dir} target, and we won't get caught out trying to output to a directory that doesn't exist.
+
+We will be adapting this Makefile as we add more components to the project.
+
+The first thing the encoder needs is a \cpp{struct} which will contain the data of a given rule in the ruleset. Since this will be shared by components other than the encoder, we will factor it out into a separate header file, \path{src/rule.hh}.
+
+\begin{file}{src/rule.hh}{cpp}{1}
+#pragma once
+#include <string>
+
+typedef unsigned long long state_t;
+
+enum Direction
+{
+    LEFT = 0,
+    RIGHT = 1
+};
+
+struct Rule
+{
+    state_t startState;
+    std::string matchSymbol;
+    std::string replaceSymbol;
+    Direction direction;
+    state_t endState;
+};
+\end{file}
+
+There are some key things to note here. The first is that we are using \cpp{unsigned long long} to store our state indices as that is the largest appropriate built-in datatype provided by C++. However, throughout the code we will refer to this datatype as \cpp{state_t}. Not only does this save time to write, but it will also allow us to switch this out for a different type later if we need to (for example, if we end up with so many states that we need a custom datatype to handle such a large number).
+
+Another thing to note is that we have assigned a value of \cpp{0} to the enum value \cpp{LEFT} and a value of \cpp{1} to the enum value \cpp{RIGHT}. While this may well be done automatically by the compiler, it is worth specifying it ourselves because it documents the fact that in our machine code, the left direction is encoded by the byte 0 and the right direction is encoded by the byte 1.
+
+Apart from these two facts, everything else should be fairly self-explanatory. Now we can go to \path{encoder.hh} and outline how we want our encoder to work.
+
+\begin{file}{src/encoder.hh}{c++}{1}
+#pragma once
+#include <vector>
+#include <unordered_map>
+#include "rule.hh"
+
+class Encoder
+{
+private:
+    state_t m_stateCount;
+    std::vector<Rule> m_rules;
+    std::unordered_map<std::string, state_t> m_stateNames;
+
+    state_t getStateIndex(const std::string &name);
+    inline void encodeRule(std::ostream &, const Rule &) const;
+
+public:
+    Encoder(void);
+
+    void addRule(const std::string &startState,
+                 const std::string &match,
+                 const std::string &replacement,
+                 const Direction direction,
+                 const std::string &endState);
+    void output(std::ostream &);
+};
+\end{file}
+
+Let's dive into why we've defined the class in this way.
+
+Other classes will use the \cpp{Encoder} class by calling its \cpp{addRule} method, passing it the details of the a rule. Vitally, this call will be using strings to represent the state names. This method will be called for each rule, and then finally the \cpp{output} method will be called, which will output the machine code for all of the added rules into some output stream. The reason we can't output the machine code of each rule as soon as we add it (and hence not have to hold them in memory) is that the number of rules has to be encoded right at the start of the output, and this number is not known until all of the rules have been added. This decision will also make things easier when we discuss hacking in an I/O system to our simulator, but that will be covered in more detail later.
+
+In order to assign each state a number, the encoder will need to keep track of how many states have been defined so far, which is the purpose of the \cpp{m_stateCount} member.
+
+The currently added rules will be stored in the vector \cpp{m_rules}.
+
+The map \cpp{m_stateNames} will map state strings to state indices. Furthermore there is a method \cpp{getStateIndex} which also performs this mapping. This method, however, will also add the given state to the map if it's not in there already.
+
+Finally, it will also be helpful to have a method \cpp{encodeRule} which will output an individual rule's machine code to some output stream. For the reasons mentioned previously, we cannot expose this method to the public to allow them to encode states as they are added. Instead this method will be called from within the  \cpp{output} method as a way of factoring out some of the functionality. The fact that it will only be used here is what makes it worth \cpp{inline}-ing.
+
+We can start implementing this class in \path{encoder.cc}. We'll start with the constructor.
+
+\begin{file}{src/encoder.cc}{c++}{1}
+#include "encoder.hh"
+
+Encoder::Encoder(void)
+{
+	m_stateNames["start"] = 0;
+	m_stateCount = 1;
+}
+\end{file}
+
+The constructor takes no arguments and simply reserves state \statename{start} as 0.
+
+The next method we can implement is \cpp{getStateIndex}. This method simply looks for the given string in the \cpp{m_stateNames} map. If it doesn't find it, then it adds it in with the next available integer, and returns that integer.
+
+\begin{file}{src/encoder.cc}{c++}{9}
+state_t Encoder::getStateIndex(const std::string &name)
+{
+    auto search = m_stateNames.find(name);
+    if (search == m_stateNames.end())
+    {
+        state_t index = m_stateCount++;
+        m_stateNames[name] = index;
+        return index;
+    }
+    return search->second;
+}
+\end{file}
+
+Next, we will write the \cpp{addRule} method. It takes in as its input the starting state, the symbol to match, the symbol with which to replace it, the read/write head direction, and the end state of a rule. Note here that the states are being passed in as strings.
+
+All this method needs to do is find the corresponding state indices for each of the start and end states, and then add an instance of the \cpp{Rule} struct to the vector \cpp{m_rules}.
+
+\begin{file}{src/encoder.cc}{c++}{21}
+void Encoder::addRule(const std::string &startState,
+                      const std::string &match,
+                      const std::string &replacement,
+                      const Direction direction,
+                      const std::string &endState)
+{
+
+    state_t startStateIndex = getStateIndex(startState);
+    state_t endStateIndex = getStateIndex(endState);
+
+    Rule rule{startStateIndex, match, replacement, direction, endStateIndex};
+
+    m_rules.push_back(rule);
+}
+\end{file}
+
+Now we can move on to the actual encoding. To do this we will need some method which takes in a state index and writes the encoded VLQ octets to an output stream. Since eventually we will need to create another method which can read VLQ values from an input stream when we implement the decoder, let's factor this functionality out into a separate translation unit, \path{src/vlq.cc} with a corresponding header \path{src/vlq.hh}.
+
+The header will be relative straightforward.
+
+\begin{file}{src/vlq.hh}{c++}{1}
+#pragma once
+#include "rule.hh"
+
+namespace vlq
+{
+    void writeToStream(std::ostream &, state_t);
+    state_t readFromStream(std::istream &);
+}
+\end{file}
+
+At the moment we only need to implement \cpp{writeToStream}, and we will do so in \path{vlq.cc}. The first piece of logic is that if the input number is 0, we only need to output a null byte to the stream and then return, as this is the VLQ encoding for the number 0.
+
+\begin{file}{src/vlq.cc}{c++}{1}
+#include <ostream>
+#include <stack>
+#include "vlq.hh"
+
+void vlq::writeToStream(std::ostream &os, state_t value)
+{
+    if (value == 0)
+    {
+        os << '\0';
+        return;
+    }
+\end{file}
+
+Next we will create a stack of octets. Each octet will be represented by an \cpp{unsigned char} because this is also an 8-bit value. The reason we use a stack is because with the operation \cpp{value & 0x7F} we can retrieve the least significant 7 bits of the value first, but this needs to be the last octet in the VLQ. As such, we store each octet on a stack so that we can output each one as we pop it, in the reverse order to that in which we pushed them.
+
+\begin{file}{src/vlq.cc}{c++}{12}
+    std::stack<unsigned char> octets;
+    while (value > 0)
+    {
+        unsigned char o = 0x80;
+        o |= value & 0x7F;
+        value >>= 7;
+        octets.push(o);
+    }
+\end{file}
+
+Initialising the octet to \cpp{0x80} sets the most significant bit to 1, which in VLQ encoding means that there will be more octets to follow. Although we don't want to set this bit for the last octet, we don't have a way to tell whether the current octet is the last one at this point in the program, so we will simply unset the bit for the last octet before we output it.
+
+Here we are also shifting the value to the right by 7 bits, meaning that on the next iteration of the loop we will get the subsequent 7 bits.
+
+Finally, we iterate over the stack, popping each octet, unsetting its most significant bit if this happens to be the last octet, and then outputting it to the stream.
+
+\begin{file}{src/vlq.cc}{c++}{21}
+    size_t size = octets.size();
+    for (size_t i = 0; i < size; i++)
+    {
+        auto octet = octets.top();
+        octets.pop();
+
+        if (i == size - 1)
+        {
+            octet &= 0x7f;
+        }
+
+        os << octet;
+    }
+}
+\end{file}
+
+Since we've added new source files we must go back and update our Makefile to add a new target.
+
+\begin{file}{Makefile}{make}{7}
+vlq: dist-dir
+	$(CC) $(CFLAGS) -o dist/vlq.o -c src/vlq.cc
+\end{file}
+
+The \code{encoder} target does not need to depend on the \code{vlq} target because we don't necessarily need to recompile the VLQ code every time we recompile the encoder. We just have to make sure that when we make an executable that relies on the encoder, it links with both \path{dist/encoder.o} \textit{and} \path{dist/vlq.o}.
+
+We can now go back to \path{encoder.cc} and include \path{vlq.hh}. We will also include \path{ostream} because we will now implement the method \path{encodeRule}.
+
+\begin{file}{src/encoder.cc}{c++}{1}
+#include <ostream>
+#include "encoder.hh"
+#include "vlq.hh"
+\end{file}
+
+\begin{file}{src/encoder.cc}{c++}{23}
+inline void Encoder::encodeRule(std::ostream &os, const Rule &rule) const
+{
+    vlq::writeToStream(os, rule.startState);
+    for (char c : rule.matchSymbol)
+    {
+        os << c;
+    }
+    os << '\0';
+    for (char c : rule.replaceSymbol)
+    {
+        os << c;
+    }
+    os << '\0';
+    os << (unsigned char)rule.direction;
+    vlq::writeToStream(os, rule.endState);
+}
+\end{file}
+
+This method should be fairly self-explanatory. We start by writing the VLQ-encoded value of the start state (note that by the time this method gets called, the conversion from string states to integer states will have already been done). Then, we write each character from the matching symbol, followed by a null byte. Then the same with the replacement symbol.
+
+For the direction, since we've ensured that the enum value \cpp{LEFT} has a value of 0 and \cpp{RIGHT} has a value of 1, we can simply cast the direction enum value to an \cpp{unsigned char}, which will give us the byte to write to the output.
+
+Finally, we write the VLQ-encoded value of the end state.
+
+Now that we've got a method for writing a single rule to an an output stream, it will be easy to write the \cpp{output} method which writes the whole program.
+
+\begin{file}{src/encoder.cc}{c++}{55}
+void Encoder::output(std::ostream &os)
+{
+    os << "TURING";
+    vlq::writeToStream(os, m_rules.size());
+    for (Rule rule : m_rules)
+    {
+        encodeRule(os, rule);
+    }
+}
+\end{file}
+
+We start by writing the 6 bytes of the string \cpp{"TURING"} to the stream, followed by the VLQ-encoded value of the total number of states. Then we write each rule. Later we will add support for metadata but for the moment this is all we need to do.
+
+The encoder is now in a working and usable state!
