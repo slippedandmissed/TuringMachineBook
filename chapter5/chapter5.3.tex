@@ -1,0 +1,95 @@
+\section {Pure Instructions}
+
+While computationally very powerful, a Turing machine leaves a lot to be desired when it comes to user interfaces. Limiting ourselves to simply an input and an output with no way to interact with the program while it's running would be a bit disappointing.
+
+Later in the chapter we will discuss ways to hack in various I/O systems to the TMVM, but some may rightfully object that such modifications are cheating, as they would not exist on a Turing machine as we defined it earlier.
+
+To rectify this, we will split our TASM instructions into two sets: ``Pure'' and ``impure''. The pure instructions are those which would work on a Turing machine with no modifications.
+
+A list of the pure instructions we will implement (further split into subcategories) is below.
+
+\subsection{Memory operations}
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|p{0.3\linewidth}|p{0.7\linewidth}|}
+\hline
+\rowcolor[HTML]{DAE8FC} 
+\textbf{Instruction} & \textbf{Description}                                                                                                                                       \\ \hline
+\code{PushInt [i]}      & Pushes integer \code{[i]} to the stack                                                                                                                        \\ \hline
+\code{PushOctet [o]}    & Pushes octet \code{[o]} to the stack                                                                                                                          \\ \hline
+\code{PushNull}             & Pushes a null value to the stack                                                                                                                           \\ \hline
+\code{PushInstNo}           & Pushes the index of the currently executing TASM instruction to the stack                                                                                  \\ \hline
+\code{Duplicate}             & Duplicates the last value on the stack                                                                                                                           \\ \hline
+\code{Pop}                  & Removes the last value from the stack                                                                                                                      \\ \hline
+\code{Load [VAR]}       & Looks up variable \code{[VAR]} in the environment and pushes its value to the stack                                                                           \\ \hline
+\code{Set [VAR]}        & Adds a variable \code{[VAR]} to the environment whose value is the last element on the stack. If \code{[VAR]} is already defined in the environment, adds another definition \\ \hline
+\code{Unset [VAR]}      & Removes the most recent definition of \code{[VAR]} from the environment                                                                                             \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Array operations}
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|p{0.3\linewidth}|p{0.7\linewidth}|}
+\hline
+\rowcolor[HTML]{DAE8FC} 
+\textbf{Instruction} & \textbf{Description}                                                                                              \\ \hline
+\code{Split}         & If the last element on the stack is an array, split its elements into separate values on the stack                \\ \hline
+\code{Join}          & Joins $n$ values from the stack into an array, starting at the second-to-last value, where $n$ is the last value. \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Mathematical operations}
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|p{0.3\linewidth}|p{0.7\linewidth}|}
+\hline
+\rowcolor[HTML]{DAE8FC} 
+\textbf{Instruction} & \textbf{Description}                                                                                                                                                                                                         \\ \hline
+\code{Add}           & Adds the last two integers on the stack, pushing the value onto the stack                                                                                                                                                    \\ \hline
+\code{Negate}        & Multiplies the last integer on the stack by -1                                                                                                                                                                               \\ \hline
+\code{Lshift}        & Adds $n$ trailing zeros to the second-last integer $p$ on the stack, where $n$ is the last value on the stack. If $p=0$, then $p$ will remain 0                                                                              \\ \hline
+\code{Rshift}        & Removes the $n$ least-significant digits from the second-last integer $p$ on the stack, where $n$ is the last value on the stack. If $p$ has fewer than $n+1$ digits (not including the sign symbol), then $p$ will become 0 \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Type operations}
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|p{0.3\linewidth}|p{0.7\linewidth}|}
+\hline
+\rowcolor[HTML]{DAE8FC} 
+\textbf{Instruction} & \textbf{Description}                                              \\ \hline
+\code{IsNull}        & If the last value on the stack is null, push 1, else push 0       \\ \hline
+\code{IsInt}         & If the last value on the stack is an integer, push 1, else push 0 \\ \hline
+\code{IsOctet}       & If the last value on the stack is an octet, push 1, else push 0   \\ \hline
+\code{IsArray}       & If the last value on the stack is an array, push 1, else push 0   \\ \hline
+\code{IntToOctetArray}       & If the last value on the stack is an integer, replace it with an array containing all of the corresponding ASCII octets of the integer followed by the number of such octets   \\ \hline
+\code{OctetArrayToInt}       & If the last value on the stack is an array containing $n$ octets between \symb{0d48} and \symb{0d57} inclusive (the first octet is also allowed to be \symb{0d45}) followed by the integer $n$, then replace the array with the integer spelled out by the octets in ASCII \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Branching operations}
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|p{0.3\linewidth}|p{0.7\linewidth}|}
+\hline
+\rowcolor[HTML]{DAE8FC} 
+\textbf{Instruction}   & \textbf{Description}                                                                                                           \\ \hline
+\code{Goto [label]}    & Continue executing the program from the instruction immediately following label \code{[label]}                                 \\ \hline
+\code{Jump [i]}        & Jump forwards by \code{[i]} instructions. Note: \code{[i]} may be negative                                                     \\ \hline
+\code{JumpZero [i]}    & Jump forwards by \code{[i]} instructions if and only if the last value on the stack is 0. Note: \code{[i]} may be negative     \\ \hline
+\code{JumpNotZero [i]} & Jump forwards by \code{[i]} instructions if and only if the last value on the stack is not 0. Note: \code{[i]} may be negative \\ \hline
+\code{Return}          & Continue executing from the instruction whose index is equal to the last value on the stack                                    \\ \hline
+\end{tabular}
+\end{center}
+\end{table}

@@ -1,6 +1,7 @@
 #!/mnt/c/Users/gbt50/AppData/Local/Programs/Python/Python39/python.exe
 import pyperclip
 
+
 def generate_diagram(state, cells, current_index, min_length=21):
 
     while len(cells) < min_length:
@@ -12,7 +13,8 @@ def generate_diagram(state, cells, current_index, min_length=21):
     cells = ["..."] + cells + ["..."]
     current_index += 1
 
-    cols = [f"\\multicolumn{{1}}{{c{'|' if i<len(cells)-1 else ''}}}{{\\symb{{{x}}}}}" for i, x in enumerate(cells)]
+    cols = [
+        f"\\multicolumn{{1}}{{c{'|' if i<len(cells)-1 else ''}}}{{\\symb{{{x}}}}}" for i, x in enumerate(cells)]
 
     return f"""\\begin{{center}}
 \\fbox{{\\begin{{minipage}}{{\\textwidth}}
@@ -31,9 +33,12 @@ def generate_diagram(state, cells, current_index, min_length=21):
 \\end{{center}}
 """
 
+
 def print_and_copy(s):
     print(s)
     pyperclip.copy(pyperclip.paste() + s)
 
+
 pyperclip.copy("")
-print_and_copy(generate_diagram("done", ["A","A","A","A","A"], 0))
+print_and_copy(generate_diagram(
+    "X", ["*", "-", "4", "5", ",", "0b255", ",", "NULL", ",", "(", "2", ";", "3", ";", "[", "4", ";", "5", "]", ")"], 19))

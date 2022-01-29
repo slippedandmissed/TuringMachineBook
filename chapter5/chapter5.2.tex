@@ -1,0 +1,229 @@
+\section{What Goes on the Tape?}
+
+As you may have guessed from the example TASM programs in the previous section, we are going to use the Turing machine as a stack machine.
+
+A stack is a data structure with two main operations:
+
+\begin{itemize}
+    \item \code{Push}, which adds an item to the end of the stack.
+    \item \code{Pop}, which removes an item from the end of the stack.
+\end{itemize}
+
+A stack is a \textit{LIFO} data structure (\textit{last in, first out}). This means that when you pop an item off of the stack, you remove the most recently pushed item.
+
+We could imagine using the tape of the Turing machine as a stack where each pushed element is placed on the right-han d side of the most recently pushed element, and then elements are popped by removing the right-most element from the tape.
+
+So, for example, the stack being empty might look like an empty tape.
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+If the number 123 is pushed onto the stack, the tape might look like this:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{3}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+If the number 987 is pushed afterwards, the tape might look like this:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{3}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{9}} & \multicolumn{1}{c|}{\symb{8}} & \multicolumn{1}{c|}{\symb{7}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & & $\uparrow$ & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Then, when a pop occurs, the number 987 (the most recently pushed value) would be removed.
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{3}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & $\uparrow$ & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Furthermore, when another pop occurs, the 123 would be removed, leaving the stack (and the tape) once again empty.
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & $\uparrow$ & & & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+We will not use our tape exactly like this, as the assembler will be easier to implement if we make a few changes.
+
+The first change will be to use a marker symbol (\symb{*}) in the cell immediately to the left of the stack to indicate where the stack begins. We will call this symbol the ``stack marker''.
+
+We will also have a separator symbol (\symb{,}) in between each element, rather than an empty cell. We will call this symbol the ``stack separator''.
+
+The choice to use these particular symbols was arbitrary.
+
+With these changes, the stack containing 123 and 987 will look as follows:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{*}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{3}} & \multicolumn{1}{c|}{\symb{,}} & \multicolumn{1}{c|}{\symb{9}} & \multicolumn{1}{c|}{\symb{8}} & \multicolumn{1}{c|}{\symb{7}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & & $\uparrow$ & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+On the left of the stack marker will be an area called the ``environment''. This is where we will store named variables.
+
+If there are no variables stored, then all of the cells to the left of the stack marker will be empty, as in the diagram above.
+
+If there were, for example, a variable named \symb{A} with a value of 100, then it would be stored as follows:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{*}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & & & & $\uparrow$ & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Note that in the diagram above that the stack is shown as empty, although there may well be values in the stack as well as the environment.
+
+Note also that the variable name \symb{A} is its own symbol. This applies even if the variable name is multiple characters long. This might imply that a program which uses arbitrarily many variables might result in the tape containing arbitrarily many symbols, and this is true. However, this is not a problem because the complete set of symbols will certainly be finite for any given program and can be known at compile-time.
+
+If in addition to \symb{A}, another variable \symb{B} was stored on the environment with a value 1729, the tape would look as follows:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{B}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{7}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{9}} & \multicolumn{1}{c|}{\symb{A}} & \multicolumn{1}{c|}{\symb{1}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{0}} & \multicolumn{1}{c|}{\symb{*}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & $\uparrow$ & & & & & & & & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+Note that unlike with the stack, we do not need a separator symbol between variables stored in the environment. This is because, as long as we do not allow variable names to be numeric digits (or any symbol which can occur in a value), then the variable names themselves acts as separators of sorts.
+
+The Turing machine rules which execute a given TASM instruction will vary wildly depending on where exactly the read/write head starts off, and what the tape looks like. It is therefore crucial that we maintain some invariants:
+
+\begin{enumerate}
+    \item Once any TASM instruction has finished executing, the read/write head must be over the rightmost non-empty cell of the stack. If the stack is empty, then the read/write head must be over the stack marker.
+    \item Once any TASM instruction has finished executing, the stack and environment must be well-formed. For example, there must be no gaps or unexpected symbols in either.
+\end{enumerate}
+
+Though these conditions may (and indeed will) be broken in the course of executing some of the TASM instructions, they must be repaired by the time the instruction finishes.
+
+There are one or two exceptions to these invariants but we will discuss this more when we implement the offending TASM instructions.
+
+For the most part, these invariants will allow us to make some key assumptions about the machine's situation when each new TASM instruction executes.
+
+Something to note here is that the numbers stored in the tape are written in base 10, unlike traditional computers which work in binary. While the assembler could indeed be programmed to make the machine work in any base, we will choose base 10 for two reasons.
+
+The first reason is that base 10 is the number system that most of us will be most comfortable with reading. Debugging this project will be enough of a nightmare as it is, and there is no need to make it harder on ourselves by having to convert between some other base and decimal in our heads while trying to figure out which numbers are stored in the tape.
+
+The other, and perhaps more practical reason comes from the fact that the tape is not random access in the way that memory on most computers is. This is to say that if we want to fetch a value which is far away from the read/write head, it takes a lot of time to travel all the way over to it. As a result of this, having numbers take up fewer cells means that the read/write head will tend to have a shorter journey to most destinations.
+
+This would suggest that a high base is desirable to make the machine run faster, so why stop at 10? Well, the more possible symbols which can exist in a number, the more rules will have to be defined for states to handle seeing those symbols, leading to an overall bigger program.
+
+Base 10 strikes an appropriate balance between speed, machine code minimisation, and readability.
+
+As well as numbers, several other data types will be allowed as values on the stack, and as variable values in the environment. A full list of allowed value types is:
+
+\begin{itemize}
+    \item Integers. These are made of consecutive cells each containing a symbol from \symb{0} to \symb{9}. They may optionally have the symbol \symb{-} in the leftmost cell, indicating that the integer is negative. Leading \symb{0}s are not permitted. The number 0 will be represented by a single cell with the symbol \symb{0} (i.e., no extra leading zeros, and no minus sign).
+    \item Octets. There are 256 possible octet values. Each one consists of a single cell whose symbol is \symb{0d} followed by the octet's value in decimal. For example, the octet \cpp{0x41} (\cpp{'A'} in ASCII) would have the symbol \symb{0d65}.
+    \item Null. This is a single cell with the symbol \symb{NULL}.
+    \item Arrays. These span multiple cells and contain other valid values. The leftmost cell contains the symbol \symb{(}. This is them followed by the cells of arbitrarily many other values, separated by a cell with a symbol \symb{;}. These values are the ``elements'' of the array. After this, there is the symbol \symb{)}. Note that if any of the elements of the array is itself an array, the inner arrays' \symb{(} and \symb{)} cells are replaced with \symb{[} and \symb{]} cells respectively.
+\end{itemize}
+
+For example, if the stack contained the values -45, the octet \cpp{0xFF}, a null value, and an array with three elements --- 2, 3, and another array containing the numbers 4 and 5 --- the tape would look like this:
+
+\begin{center}
+\fbox{\begin{minipage}{\textwidth}
+\begin{table}[H]
+\fontsize{8pt}{20pt}
+\begin{center}
+\begin{tabular}{ccccccccccccccccccccccc}
+\multicolumn{23}{l}{\statename{X}} \\
+\\ \hline
+\multicolumn{1}{c|}{\symb{...}} & \multicolumn{1}{c|}{\symb{*}} & \multicolumn{1}{c|}{\symb{-}} & \multicolumn{1}{c|}{\symb{4}} & \multicolumn{1}{c|}{\symb{5}} & \multicolumn{1}{c|}{\symb{,}} & \multicolumn{1}{c|}{\symb{0b255}} & \multicolumn{1}{c|}{\symb{,}} & \multicolumn{1}{c|}{\symb{NULL}} & \multicolumn{1}{c|}{\symb{,}} & \multicolumn{1}{c|}{\symb{(}} & \multicolumn{1}{c|}{\symb{2}} & \multicolumn{1}{c|}{\symb{;}} & \multicolumn{1}{c|}{\symb{3}} & \multicolumn{1}{c|}{\symb{;}} & \multicolumn{1}{c|}{\symb{[}} & \multicolumn{1}{c|}{\symb{4}} & \multicolumn{1}{c|}{\symb{;}} & \multicolumn{1}{c|}{\symb{5}} & \multicolumn{1}{c|}{\symb{]}} & \multicolumn{1}{c|}{\symb{)}} & \multicolumn{1}{c|}{\symb{}} & \multicolumn{1}{c}{\symb{...}}
+\\ \hline
+& & & & & & & & & & & & & & & & & & & & $\uparrow$ & &
+\end{tabular}
+\end{center}
+\end{table}
+\end{minipage}}
+\end{center}
+
+These specifications might seem a bit complicated and arbitrary, but when we come to implement the TASM instructions hopefully the merits of this design will become clear.

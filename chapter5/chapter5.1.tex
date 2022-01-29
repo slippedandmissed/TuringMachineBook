@@ -1,0 +1,71 @@
+\section{What is Pseudo-Assembly?}
+
+In previous chapters we outlined the structure of a machine code for our Turing machine programs. Though efficiently stored and fast for a simulator to parse, it would be very difficult and time-consuming to write by hand. There is a sense in which machine code, by definition, is stored as raw bytes --- devoid of any mnemonics, comments, or human-friendly metaphors.
+
+Hand-written machine code would be prone to bugs, and would resist interpretation by collaborators. This is a problem which affects almost all machine code languages, and so each often has its own accompanying ``assembly'' language. These languages consist of simple instructions (typically a one-to-one mapping with machine code instructions) but are written in human-friendly ASCII, rather than raw bytes.
+
+For example, in the RISC-V architecture, the instruction which adds together the values stored in registers \code{t0} and \code{t1}, storing the result in register \code{t2} is written in machine code as follows:
+
+\begin{stdout}
+0x006283B3
+\end{stdout}
+
+Whereas the equivalent assembly instruction is:
+
+\begin{stdout}
+ADD t2, t0, t1
+\end{stdout}
+
+Clearly the latter is much easier for humans to work with. A program called an ``assembler'' is used to convert assembly code to machine code.
+
+In this sense, our own machine code specification already has an assembly language --- the $\Delta$-function notation. This, like an assembly language, lets us specify our rules in a more human-friendly format while having a one-to-one correspondence with the machine code rules. Likewise, the encoder component we've created acts like an assembler.
+
+However, one key way in which the $\Delta$-function notation is different from a traditional assembly language is that the rules are not executed sequentially. In fact, the rules can be specified in any order at all and the execution of the program will be identical. This makes it difficult to use this language to implement algorithms where sequentiality is the underlying paradigm.
+
+If our goal is eventually to create a high-level C-like programming language for the Turing machine, it will be exceedingly helpful to design a simpler assembly-like intermediate language, or ``pseudo-assembly''.
+
+Though this will not be an assembly language in a technical sense, as it will lack a one-to-one correspondence between its own instructions and the Turing machine rules, it will look a lot like an assembly language, being made up of a list of simple instructions which execute sequentially.
+
+This is a very important shift in the way programs will be written for the Turing machine. Writing machine code directly (or indeed, using $\Delta$-function notation) forces the programmer to think in terms of \textbf{rules}, which either apply or don't apply in any given situation. Whereas, writing programs in this pseudo-assembly language will allow the programmer to think in terms of \textbf{instructions}, which are executed in sequence.
+
+The goal of this chapter is to write a tool which can bridge this gap, converting pseudo-assembly into machine code.
+
+Let's clear up some terminology. Though, as mentioned above, this language (``TASM'', or \textit{Turing Assembly}) will not meet the technical definition of an assembly language for this machine, we will nonetheless refer to it as an assembly language from here on. I feel that this is appropriate for several reasons:
+
+\begin{itemize}
+    \item TASM will look like other assembly languages.
+    \item Programming in TASM will require a very similar mindset to programming in other assembly languages.
+    \item This convention will allow us to refer to the conversion program as an ``assembler'' rather than the more generic term, ``compiler''. This will avoid confusion between it and the compiler for the C-like language we will create later.
+\end{itemize}
+
+To get a better feel for the assembly language we're trying to create, let's write an example program.
+
+Suppose we wanted to add together the numbers 15 and 276. The TASM instructions might look like:
+
+\begin{stdout}
+PushInt 15
+PushInt 276
+Add
+\end{stdout}
+
+We also want to allow jumping between instructions. We can achieve this by treating lines which start with a ``:'' character to be ``labels'', and use an instruction such as \code{Goto} to continue executing the program from that label.
+
+For example, the program below will count upwards forever in an infinite loop.
+
+\begin{stdout}
+PushInt 0
+:loop
+PushInt 1
+Add
+Goto loop
+\end{stdout}
+
+We also want to allow code comments. For example, we can ignore anything which follows a ``;'' character, up until the next newline.
+
+\begin{stdout}
+PushInt 0
+:loop
+PushInt 1
+Add
+Goto loop       ; Jumps back to the start of the loop
+\end{stdout}
