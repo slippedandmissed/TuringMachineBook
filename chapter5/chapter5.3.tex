@@ -22,7 +22,7 @@ A list of the pure instructions we will implement (further split into subcategor
 \code{PushInstNo}           & Pushes the index of the currently executing TASM instruction to the stack                                                                                  \\ \hline
 \code{Duplicate}             & Duplicates the last value on the stack                                                                                                                           \\ \hline
 \code{Pop}                  & Removes the last value from the stack                                                                                                                      \\ \hline
-\code{Load [VAR]}       & Looks up variable \code{[VAR]} in the environment and pushes its value to the stack                                                                           \\ \hline
+\code{Load [VAR]}       & Looks up the most recent definition of variable \code{[VAR]} in the environment and pushes its value to the stack                                                                           \\ \hline
 \code{Set [VAR]}        & Adds a variable \code{[VAR]} to the environment whose value is the last element on the stack. If \code{[VAR]} is already defined in the environment, adds another definition \\ \hline
 \code{Unset [VAR]}      & Removes the most recent definition of \code{[VAR]} from the environment                                                                                             \\ \hline
 \end{tabular}
@@ -37,7 +37,7 @@ A list of the pure instructions we will implement (further split into subcategor
 \hline
 \rowcolor[HTML]{DAE8FC} 
 \textbf{Instruction} & \textbf{Description}                                                                                              \\ \hline
-\code{Split}         & If the last element on the stack is an array, split its elements into separate values on the stack                \\ \hline
+\code{Split}         & If the last element on the stack is an array, splits its elements into separate values on the stack                \\ \hline
 \code{Join}          & Joins $n$ values from the stack into an array, starting at the second-to-last value, where $n$ is the last value. \\ \hline
 \end{tabular}
 \end{center}
@@ -67,12 +67,12 @@ A list of the pure instructions we will implement (further split into subcategor
 \hline
 \rowcolor[HTML]{DAE8FC} 
 \textbf{Instruction} & \textbf{Description}                                              \\ \hline
-\code{IsNull}        & If the last value on the stack is null, push 1, else push 0       \\ \hline
-\code{IsInt}         & If the last value on the stack is an integer, push 1, else push 0 \\ \hline
-\code{IsOctet}       & If the last value on the stack is an octet, push 1, else push 0   \\ \hline
-\code{IsArray}       & If the last value on the stack is an array, push 1, else push 0   \\ \hline
-\code{IntToOctetArray}       & If the last value on the stack is an integer, replace it with an array containing all of the corresponding ASCII octets of the integer followed by the number of such octets   \\ \hline
-\code{OctetArrayToInt}       & If the last value on the stack is an array containing $n$ octets between \symb{0d48} and \symb{0d57} inclusive (the first octet is also allowed to be \symb{0d45}) followed by the integer $n$, then replace the array with the integer spelled out by the octets in ASCII \\ \hline
+\code{IsNull}        & If the last value on the stack is null, pushes 1, else pushes 0       \\ \hline
+\code{IsInt}         & If the last value on the stack is an integer, pushes 1, else pushes 0 \\ \hline
+\code{IsOctet}       & If the last value on the stack is an octet, pushes 1, else pushes 0   \\ \hline
+\code{IsArray}       & If the last value on the stack is an array, pushes 1, else pushes 0   \\ \hline
+\code{IntToOctetArray}       & If the last value on the stack is an integer, replaces it with an array containing all of the corresponding ASCII octets of the integer, followed by the number of such octets   \\ \hline
+\code{OctetArrayToInt}       & If the last value on the stack is an array containing $n$ octets between \symb{0d48} and \symb{0d57} inclusive (the first octet is also allowed to be \symb{0d45}) followed by the integer $n$, then replaces the array with the integer spelled out by the octets in ASCII \\ \hline
 \end{tabular}
 \end{center}
 \end{table}
@@ -85,11 +85,13 @@ A list of the pure instructions we will implement (further split into subcategor
 \hline
 \rowcolor[HTML]{DAE8FC} 
 \textbf{Instruction}   & \textbf{Description}                                                                                                           \\ \hline
-\code{Goto [label]}    & Continue executing the program from the instruction immediately following label \code{[label]}                                 \\ \hline
-\code{Jump [i]}        & Jump forwards by \code{[i]} instructions. Note: \code{[i]} may be negative                                                     \\ \hline
-\code{JumpZero [i]}    & Jump forwards by \code{[i]} instructions if and only if the last value on the stack is 0. Note: \code{[i]} may be negative     \\ \hline
-\code{JumpNotZero [i]} & Jump forwards by \code{[i]} instructions if and only if the last value on the stack is not 0. Note: \code{[i]} may be negative \\ \hline
-\code{Return}          & Continue executing from the instruction whose index is equal to the last value on the stack                                    \\ \hline
+\code{Goto [label]}    & Continues executing the program from the instruction immediately following label \code{[label]}                                 \\ \hline
+\code{Jump [i]}        & Jumps forwards by \code{[i]} instructions. Note: \code{[i]} may be negative                                                     \\ \hline
+\code{JumpZero [i]}    & Jumps forwards by \code{[i]} instructions if and only if the last value on the stack is 0. Note: \code{[i]} may be negative     \\ \hline
+\code{JumpNotZero [i]} & Jumps forwards by \code{[i]} instructions if and only if the last value on the stack is not 0. Note: \code{[i]} may be negative \\ \hline
+\code{JumpPositive [i]} & Jumps forwards by \code{[i]} instructions if and only if the last value on the stack is greater than 0. Note: \code{[i]} may be negative \\ \hline
+\code{JumpNegative [i]} & Jumps forwards by \code{[i]} instructions if and only if the last value on the stack is less than 0. Note: \code{[i]} may be negative \\ \hline
+\code{Return}          & Continues executing from the instruction whose index is equal to the last value on the stack                                    \\ \hline
 \end{tabular}
 \end{center}
 \end{table}
