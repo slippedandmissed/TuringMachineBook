@@ -1,0 +1,391 @@
+\section{TASM Assembler}
+
+In this section we will begin to implement the TASM assembler --- a program which will convert TASM instructions into Turing machine rules.
+
+First, we will refactor some of our source code files. We will move the files \path{src/decoder.cc}, \path{src/decoder.hh}, \path{src/program.hh}, \path{src/simulator.cc}, \path{src/simulator.hh}, \path{src/tape.cc}, \path{src/tape.hh}, and \path{src/tmvm.cc} into a new subdirectory called \path{src/tmvm/}. Furthermore we will move \path{src/encoder.cc} and \path{src/encoder.hh} into a new subdirectory called \path{src/tasm/}.
+
+When moving these files, we must update their local \cpp{#include} directives where necessary to use the updated paths. We must likewise update some of these references in \path{src/tests/decoder-tests.cc}, \path{src/tests/encoder-tests.cc}, \path{src/test/simulator-tests.cc}, and \path{Makefile}.
+
+After this refactoring, the project directory should have the following structure:
+
+\structure{%
+.1 \textit{[Project Directory]}.
+.2 src/.
+.3 tasm/.
+.4 encoder.cc/.
+.4 encoder.hh/.
+.3 tests/.
+.4 decoder-tests.cc.
+.4 encoder-tests.cc.
+.4 simulator-tests.cc.
+.4 tests.cc.
+.4 tests.hh.
+.4 vlq-tests.hh.
+.3 tmvm/.
+.4 decoder.cc.
+.4 decoder.hh.
+.4 program.hh.
+.4 simulator.cc.
+.4 simulator.hh.
+.4 tape.cc.
+.4 tape.hh.
+.4 tmvm.cc.
+.3 metadata.hh.
+.3 rule.hh.
+.3 vlq.cc.
+.3 vlq.hh.
+.2 Makefile.
+}
+
+We will now create a new file, \path{src/tasm/assembler.hh}, in which we will define a class which will assemble the TASM programs. It will be helpful to allow this class to assemble a program which is split across multiple TASM files. We will therefore give this class two public methods: \cpp{assembleFile} which accepts an input stream, and \cpp{output} which accepts an output stream.
+
+This class will also need a reference to an \cpp{Encoder} object to output the machine code.
+
+It will also be helpful to keep track of the number of instructions parsed so far.
+
+\begin{file}{src/tasm/assembler.hh}{c++}{1}
+#pragma once
+#include <iostream>
+#include "encoder.hh"
+
+class Assembler
+{
+private:
+    Encoder m_encoder;
+
+    int m_instructionNo{0};
+
+public:
+    Assembler(void);
+    void assembleFile(std::istream &is);
+    void output(std::ostream &is);
+};
+\end{file}
+
+In fact, when assembling a file, it would be nice if we could output helpful error messages when failures occur. We will create a struct for this called \cpp{AssemblerError}, and change the \cpp{Assembler::assembleFile} method to return a pointer to an instance of this struct (instead returning a \cpp{nullptr} if there was no error).
+
+For concision, we will define a new type called \cpp{MaybeError} to encapsulate such a pointer.
+
+\begin{file}{src/tasm/assembler.hh}{c++}{2}
+#include <memory>
+#include "encoder.hh"
+
+struct AssemblerError
+{
+    int lineNo;
+    std::string message;
+};
+
+typedef std::unique_ptr<AssemblerError> MaybeError;    
+\end{file}
+
+\begin{file}{src/tasm/assembler.hh}{c++}{23}
+    MaybeError assembleFile(std::istream &is);
+\end{file}
+
+We can begin to implement this class in a new file, \path{src/tasm/assembler.cc}.
+
+We will start with the \cpp{assembleFile} method. Since we can assume that each instruction will appear on its own line in the TASM source code, we can iterate through the input stream line by line. We can then hand that line over to a new method, \cpp{Assembler::assembleLine}, which will handle it and return a \cpp{MaybeError} object. If it does, we must set that object's \cpp{lineNo} member to the current line number (we can assume that the \cpp{assembleLine} method will set the message), and then return it.
+
+If we reach the end of the file without returning an error, then return a \cpp{nullptr}.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{1}
+#include "assembler.hh"
+
+MaybeError Assembler::assembleFile(std::istream &is)
+{
+    int lineNo = 1;
+    std::string line;
+
+    while (getline(is, line))
+    {
+        auto e = assembleLine(line);
+        if (e)
+        {
+            e->lineNo = lineNo;
+            return e;
+        }
+
+        lineNo++;
+        m_instructionNo++;
+    }
+
+    return nullptr;
+}
+\end{file}
+
+We must not forget to declare the \cpp{assembleLine} method in the header. We will make this method private.
+
+\begin{file}{src/tasm/assembler.hh}{c++}{21}
+    MaybeError assembleLine(std::string &);
+\end{file}
+
+Let's begin the implementation, again in \path{assembler.cc}. We can start by checking whether the line is empty. If so, we decrement the instruction counter (as this does not really count as an instruction, and the decrement will cancel out a later increment) and return no error.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{24}
+MaybeError Assembler::assembleLine(std::string &line)
+{
+    if (line.find_first_not_of(' ') == std::string::npos)
+    {
+        m_instructionNo--;
+        return nullptr;
+    }
+\end{file}
+
+Otherwise, we will split the line into tokens, with each token being separated by a space. For example, the instruction \code{PushInt 1729} would be split into tokens \cpp{"PushInt"} and \cpp{"1729"}.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{32}
+    size_t pos = 0;
+    std::vector<std::string> tokens;
+    while ((pos = line.find(' ')) != std::string::npos)
+    {
+        tokens.push_back(line.substr(0, pos));
+        line.erase(0, pos + 1);
+    }
+    tokens.push_back(line);
+\end{file}
+
+If the first token starts with the character \cpp{':'}, then the line represents a label, as described in the previous section. We will handle this case later. For now we can just decrement the instruction count as before, and return no error.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{41}
+    if (tokens[0].length() > 0 && tokens[0][0] == ':')
+    {
+        // TODO: handle labels
+        m_instructionNo--;
+        return nullptr;
+    }
+\end{file}
+
+Otherwise, the first token is the name of the instruction (e.g., \cpp{"PushInt"}, \cpp{"PushChar"}, \cpp{"PushNull"}).
+
+We can use \cpp{if} statements to check which of the instructions is being used, and then hand its token vector off to some other method which parses that particular instruction (which we can assume will return a \cpp{MaybeError}). We will implement these parsing methods later. For now we'll just handle two cases, \code{PushInt} and \code{PushChar}.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{48}
+    auto instructionType = tokens[0];
+
+    if (instructionType == "PushInt")
+    {
+        return std::move(parsePushInt(tokens));
+    }
+    if (instructionType == "PushChar")
+    {
+        return std::move(parsePushChar(tokens));
+    }
+\end{file}
+
+If no such instruction exists, then we will return an instance of \cpp{MaybeError} in the form of a pointer to an \cpp{AssemblerError} object. Remember that we don't have to set the correct line number, as this will be done by \cpp{assembleFile}.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{59}
+    return std::make_unique<AssemblerError>((AssemblerError){
+        -1,
+        "Unknown instruction: '" + instructionType + "'"});
+}
+\end{file}
+
+The next step is to declare these \cpp{parsePushInt} and \cpp{parsePushChar} methods. In fact we will make these public methods of a class called \cpp{Parsers}. The declaration of this class will go in \path{src/tasm/parsers.hh}.
+
+This class will need to have a reference to the assembler so that when parsing an instruction it can encode rules on the assembler's behalf. It can take in this reference via the constructor.
+
+\begin{file}{src/tasm/parsers.hh}{c++}{1}
+#pragma once
+#include "assembler.hh"
+
+class Parsers
+{
+private:
+    Assembler &m_assembler;
+
+public:
+    Parsers(Assembler &);
+
+    MaybeError parsePushInt(std::vector<std::string> &);
+    MaybeError parsePushChar(std::vector<std::string> &);
+};
+\end{file}
+
+Here you may spot the potential to use the same trick we used to implement the unit testing framework. Namely, we can use a macro to speed up the \cpp{parsePushInt} and \cpp{parsePushChar} method declarations. We will define a macro, \cpp{FOR_ALL_INSTRUCTIONS} as follows:
+
+\begin{file}{src/tasm/parsers.hh}{c++}{4}
+#define FOR_ALL_INSTRUCTIONS \
+    X(PushInt)               \
+    X(PushChar)
+\end{file}
+
+This macro applies some as-yet unknown other macro \cpp{X} to each of the instruction names. We will use this macro instead of manually adding more method declarations.
+
+\begin{file}{src/tasm/parsers.hh}{c++}{16}
+#define X(inst) \
+    MaybeError parse##inst(std::vector<std::string> &);
+    FOR_ALL_INSTRUCTIONS
+#undef X
+\end{file}
+
+As you can see, we are defining the \cpp{X} macro as one which declares the parsing method for the given instruction.
+
+We can also use this trick to simplify the \cpp{Assembler::assembleLine} method. Instead of manually checking for each different instruction type, we can define the \cpp{X} macro to do it for us.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{2}
+#include "parsers.hh"
+\end{file}
+
+\begin{file}{src/tasm/assembler.cc}{c++}{49}
+    auto instructionType = tokens[0];
+    Parsers parsers(*this);
+
+#define X(inst)                                        \
+    if (instructionType == #inst)                      \
+    {                                                  \
+        return std::move(parsers.parse##inst(tokens)); \
+    }
+    FOR_ALL_INSTRUCTIONS
+#undef X
+\end{file}
+
+Notice how in the code above, we create an instance of the \cpp{Parsers} class and pass a reference to the current assembler to it.
+
+Now, when we want to add a new instruction, we only have to modify the \cpp{FOR_ALL_INSTRUCTIONS} macro to include the new instruction, and then implement its parsing method.
+
+One minor optimisation we can make at this point is to eliminate the use of \cpp{#inst} in the \cpp{X} macro. This will construct a new string instance every time the \cpp{assembleLine} method is called. However, since the instruction names don't change, we can simply construct a string for each of them once and then keep them around as constants. We will define these constants in \path{parsers.hh} by once again making use of the \cpp{FOR_ALL_INSTRUCTIONS} macro.
+
+\begin{file}{src/tasm/parsers.hh}{c++}{8}
+#define X(inst) \
+    const std::string inst##Opcode = #inst;
+FOR_ALL_INSTRUCTIONS
+#undef X
+\end{file}
+
+This creates constants called \cpp{PushIntOpcode} and \cpp{PushCharOpcode} whose values are the strings \cpp{"PushInt"} and \cpp{"PushChar"} respectively. This will automatically extend to any future instructions we add.
+
+We can use these constants in \cpp{assembleLine}.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{49}
+    auto instructionType = tokens[0];
+    Parsers parsers(*this);
+
+#define X(inst)                                        \
+    if (instructionType == inst##Opcode)               \
+    {                                                  \
+        return std::move(parsers.parse##inst(tokens)); \
+    }
+    FOR_ALL_INSTRUCTIONS
+#undef X
+\end{file}
+
+Before we go on to implement these parsing methods, we should finish up the implementation of \cpp{Assembler}. Next, we can implement the \cpp{output} method. This method will be relatively simple, as we will assume that the parsing methods will be using the \cpp{m_encoder} member to add rules. We simply need to call \cpp{m_encoder.output} to write the machine code to the output stream.
+
+We will also tell the encoder to write the state string metadata to the stream, as this will aid in debugging. Later we will have this behaviour controlled by a debug flag.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{65}
+void Assembler::output(std::ostream &os)
+{
+    m_encoder.output(os);
+    m_encoder.addStateStrings(os);
+}
+\end{file}
+
+Next we can add the constructor. The constructor doesn't really do anything, as we can assume that the Turing machine will start with its inputs (if it has any) well-formed on the stack. Furthermore, we will assume that the read/write head is in the correct position in accordance with the invariants laid out in the previous section.
+
+However, we do need to ensure that the state is correct. Let's think forwards to when we want to implement the parser methods. We cannot have a single set of states/rules for each type of instruction. To demonstrate why, imagine the following TASM program.
+
+\begin{stdout}
+PushInt 1
+Pop
+PushInt 1
+PushNull
+\end{stdout}
+
+If the set of rules was the same for both instances of the \code{PushInt 1} instruction, then by definition the machine would be in the same state (e.g., \statename{finisihed_pushing_int}) when finishing executing the first instruction as it would when finishing the third. There would then be no way of knowing whether to move on to the \code{Pop} instruction or the \code{PushNull}.
+
+We can solve this issue by giving each instance of an instruction its own set of rules, where the state names contain the instruction number. This way when the machine finishes executing the first instruction, it might be in state \statename{finished_pushing_int~0} and then when it finishes executing the third instruction, it might be in state \statename{finished_pushing_int~2}. Since these are distinct states, the machine can differentiate between the two scenarios.
+
+To make life easier, we will say that regardless of what type of instruction it is, instruction number $i$ will always begin in the state \statename{ready~i}. Furthermore, all of the states we use to implement instruction $i$ must end with \statename{~i}
+
+Therefore, when the machine starts running, we want it to be in state \statename{ready~0}. However, the encoder we implemented always has the machine starting in state \statename{start}. Luckily, this is an easy fix. We will add an additional constructor to the \cpp{Encoder} class which accepts a string to use as the name of the initial state (the one which will be encoded as state \statename{0} in the machine code).
+
+\begin{file}{src/tasm/encoder.hh}{c++}{18}
+    Encoder(const std::string &);
+    Encoder(void);
+\end{file}
+
+Currently, the no-argument constructor of the encoder looks like this:
+
+\begin{file}{src/tasm/encoder.cc}{c++}{6}
+Encoder::Encoder(void)
+{
+    m_stateNames["start"] = 0;
+    m_indexToState.push_back("start");
+    m_stateCount = 1;
+}    
+\end{file}
+
+We will use very similar code to define the new constructor.
+
+\begin{file}{src/tasm/encoder.cc}{c++}{6}
+Encoder::Encoder(const std::string &initialState)
+{
+    m_stateNames[initialState] = 0;
+    m_indexToState.push_back(initialState);
+    m_stateCount = 1;
+}    
+\end{file}
+
+To reduce code duplication, we will replace the no-argument constructor to defer to the new one, passing it a value of \cpp{"start"} to use as the initial state.
+
+\begin{file}{src/tasm/encoder.cc}{c++}{13}
+Encoder::Encoder(void) : Encoder("start")
+{
+}
+\end{file}
+
+We can add a new unit test for the encoder to ensure that this feature works as intended.
+
+\begin{file}{src/tests/encoder-tests.cc}{c++}{80}
+static bool customInitialState(void)
+{
+    Encoder encoder("initial");
+    encoder.addRule("initial", "1", "0", Direction::RIGHT, "go_to_end");
+    encoder.addRule("initial", "0", "1", Direction::LEFT, "initial");
+    encoder.addRule("initial", "", "", Direction::RIGHT, "done");
+    encoder.addRule("done", "1", "", Direction::RIGHT, "done");
+    encoder.addRule("go_to_end", "0", "0", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "1", "1", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "A", "A", Direction::RIGHT, "go_to_end");
+    encoder.addRule("go_to_end", "", "A", Direction::LEFT, "initial");
+    encoder.addRule("initial", "A", "A", Direction::LEFT, "initial");
+
+    std::ostringstream os;
+
+    encoder.output(os);
+
+    auto result = stringToHex(os.str());
+
+    std::string expected =
+        "545552494E4709003100300001010030"
+        "00310000000000000102023100000102"
+        "01300030000101013100310001010141"
+        "00410001010100410000000041004100"
+        "0000";
+
+    return result == expected;
+}
+\end{file}
+
+\begin{file}{src/tests/encoder-tests.cc}{c++}{113}
+    RUN_TEST(customInitialState, record);
+\end{file}
+
+Now we can define the \cpp{Assembler} constructor.
+
+\begin{file}{src/tasm/assembler.cc}{c++}{4}
+Assembler::Assembler(void) : m_encoder("ready~0")
+{
+}    
+\end{file}
+
+The final change to make for now is to allow the \cpp{Parsers} class to access the private members of \cpp{Assembler} objects, as it will need access to the encoder and the instruction number. We will do this in \path{assembler.hh}.
+
+\begin{file}{src/tasm/assembler.hh}{c++}{16}
+    friend class Parsers;
+\end{file}
+
+We have now set up the assembler framework and can go on to implementing each of the instructions.
